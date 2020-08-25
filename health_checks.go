@@ -30,7 +30,7 @@ type CheckRegistry struct {
 	CheckFuncs map[string]HealthCheckConstructor
 	Checks     []*HealthCheck
 	// TODO: generalize to Sink interface
-	Sinks	   map[string]func(bool) *ConsoleSink
+	Sinks	   map[string]func(bool) Sink
 }
 
 func NewCheckRegistry() *CheckRegistry {

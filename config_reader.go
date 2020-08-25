@@ -2,12 +2,24 @@ package healthchecker
 
 import (
 	"encoding/json"
+	"github.com/go-yaml/yaml"
 )
 
+//type Config struct {
+	//Core         map[string]string
+	////HealthChecks map[string]map[string]string
+	//HealthChecks map[string][]map[string]map[string]string
+//}
+
 type Config struct {
-	Core         map[string]string
-	HealthChecks map[string]map[string]string
+	Core map[string]string
+	HealthChecks []struct {
+		Type string
+		Args map[string]string
+		Sinks []map[string]string
+	}
 }
+
 
 func ConfigFromJson(fileContents []byte) *Config {
 	var config Config
@@ -18,4 +30,12 @@ func ConfigFromJson(fileContents []byte) *Config {
 	return &config
 }
 
-// TODO: read from ini/yaml
+
+func ConfigFromYaml(fileContents []byte) *Config {
+	c := Config{}
+	err := yaml.Unmarshal(fileContents, &c)
+	if err != nil {
+		panic("Cannot create config from yaml")
+	}
+	return &c
+}
