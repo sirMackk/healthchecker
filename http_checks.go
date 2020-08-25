@@ -10,8 +10,6 @@ import (
 	// get https://github.com/go-gcfg/gcfg/tree/v1.2.3 - dep or modules?
 )
 
-// add timing decorator
-
 type HTTPChecker struct {
 	HTTPClient *http.Client
 }
@@ -54,13 +52,19 @@ func (h *HTTPChecker) contentsCheck(rsp *http.Response, reg *regexp.Regexp) bool
 	return reg.MatchString(string(rspBody))
 }
 
-func (h *HTTPChecker) SimpleHTTPCheck(url string) (bool, time.Duration) {
-	return h.checkRequest(url, h.statusCheck)
+func (h *HTTPChecker) SimpleHTTPCheck(url string) *CheckResult {
+	checkName := fmt.Sprintf("SimpleHTTPCheck: %s", url)
+	checkTime := time.Now()
+	success, duration := h.checkRequest(url, h.statusCheck)
+	return &CheckResult{checkTime, checkName, success, duration}
 }
 
-func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) (bool, time.Duration) {
+func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *CheckResult {
+	checkName := fmt.Sprintf("RegexpHTTPCheck: %s", url)
+	checkTime := time.Now()
 	contentsCheckWrapper := func(rsp *http.Response) bool {
 		return h.contentsCheck(rsp, rex)
 	}
-	return h.checkRequest(url, contentsCheckWrapper)
+	success, duration := h.checkRequest(url, contentsCheckWrapper)
+	return &CheckResult{checkTime, checkName, success, duration}
 }
