@@ -5,18 +5,26 @@ package healthchecker
 
 import (
 	"fmt"
-	"io"
+	"os"
+	"time"
 )
 
 type Sink interface {
-	emit(c CheckResult)
+	Emit(c CheckResult)
 }
 
-type LogSink struct {
-	targetStream io.Writer
+type ConsoleSink struct {
+	targetStream *os.File
+}
+
+func NewConsoleSink(stdout bool) *ConsoleSink {
+	if stdout {
+		return &ConsoleSink{os.Stdout}
+	}
+	return &ConsoleSink{os.Stderr}
 }
 
 
-func (l *LogSink) emit(c CheckResult) {
-	fmt.Fprintf(l.targetStream, "%s [%s]: %t %s", c.Timestamp, c.Name, c.Result, c.Duration)
+func (l *ConsoleSink) Emit(c CheckResult) {
+	fmt.Fprintf(l.targetStream, "%s [%s]: %t %s", c.TimestampString(), c.Name, c.Result, c.Duration.Round(time.Millisecond))
 }
