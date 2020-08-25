@@ -5,19 +5,13 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-//type Config struct {
-	//Core         map[string]string
-	////HealthChecks map[string]map[string]string
-	//HealthChecks map[string][]map[string]map[string]string
-//}
-
 type Config struct {
 	Core map[string]string
 	HealthChecks []struct {
 		Type string
 		Args map[string]string
-		Sinks []map[string]string
-	}
+		Sinks []map[string][]string
+	} `health-checks`
 }
 
 
