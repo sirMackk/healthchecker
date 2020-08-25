@@ -16,8 +16,8 @@ func TestSimpleHTTPCheckPass(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res, _ := checker.SimpleHTTPCheck(ts.URL)
-	if res != true {
+	res := checker.SimpleHTTPCheck(ts.URL)
+	if res.Result != true {
 		t.FailNow()
 	}
 }
@@ -30,8 +30,8 @@ func TestSimpleHTTPCheckFail(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res, _ := checker.SimpleHTTPCheck(ts.URL)
-	if res == true {
+	res := checker.SimpleHTTPCheck(ts.URL)
+	if res.Result == true {
 		t.FailNow()
 	}
 }
@@ -46,8 +46,8 @@ func TestSimpleHTTPCheckTimeout(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(timeout * time.Millisecond))
-	res, timing := checker.SimpleHTTPCheck(ts.URL)
-	if res == true || timing < timeoutSleep {
+	res := checker.SimpleHTTPCheck(ts.URL)
+	if res.Result == true || res.Duration < timeoutSleep {
 		t.Fail()
 	}
 }
@@ -60,8 +60,8 @@ func TestRegexpHTTPCheckPass(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res, _ := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
-	if res != true {
+	res := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	if res.Result != true {
 		t.Fail()
 	}
 }
@@ -74,8 +74,8 @@ func TestRegexpHTTPCheckFailStatus(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res, _ := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
-	if res == true {
+	res := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	if res.Result == true {
 		t.Fail()
 	}
 }
@@ -87,8 +87,8 @@ func TestRegexpHTTPCheckFailMatch(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res, _ := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
-	if res == true {
+	res  := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	if res.Result == true {
 		t.Fail()
 	}
 }
