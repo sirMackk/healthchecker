@@ -17,7 +17,7 @@ type ConsoleSink struct {
 	targetStream *os.File
 }
 
-func NewConsoleSink(stdout bool) *ConsoleSink {
+func NewConsoleSink(stdout bool) Sink {
 	if stdout {
 		return &ConsoleSink{os.Stdout}
 	}

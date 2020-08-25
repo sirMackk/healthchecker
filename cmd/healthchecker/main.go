@@ -33,6 +33,7 @@ func main() {
 	// TODO unfuck this mess into neat code
 	for _, hc := range config.HealthChecks {
 		for _, checkDetails := range hc {
+			// TODO unfuck json decoding
 			checkType := string(checkDetails["type"])
 			checkArgs := checkDetails["args"]
 			sinks := make([]hchecker.Sink, 0)
