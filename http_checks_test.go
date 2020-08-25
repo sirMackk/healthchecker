@@ -15,7 +15,7 @@ func TestSimpleHTTPCheckPass(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res := checker.SimpleHTTPCheck(ts.URL)
+	res, _ := checker.SimpleHTTPCheck(ts.URL)
 	if res != true {
 		t.FailNow()
 	}
@@ -29,7 +29,7 @@ func TestSimpleHTTPCheckFail(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res := checker.SimpleHTTPCheck(ts.URL)
+	res, _ := checker.SimpleHTTPCheck(ts.URL)
 	if res == true {
 		t.FailNow()
 	}
@@ -37,15 +37,16 @@ func TestSimpleHTTPCheckFail(t *testing.T) {
 
 func TestSimpleHTTPCheckTimeout(t *testing.T) {
 	timeout := time.Duration(100)
+	timeoutSleep := timeout + 50
 	ts := ht.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep((timeout + 50) * time.Millisecond)
+		time.Sleep((timeoutSleep) * time.Millisecond)
 		w.Write([]byte("Exceeded timeout"))
 	}))
 	defer ts.Close()
 
 	checker := NewHTTPChecker(time.Duration(timeout * time.Millisecond))
-	res := checker.SimpleHTTPCheck(ts.URL)
-	if res == true {
-		t.FailNow()
+	res, timing := checker.SimpleHTTPCheck(ts.URL)
+	if res == true || timing < timeoutSleep {
+		t.Fail()
 	}
 }
