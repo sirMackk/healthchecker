@@ -6,7 +6,6 @@ import (
 	ht "net/http/httptest"
 	"testing"
 	"time"
-	"regexp"
 )
 
 func TestSimpleHTTPCheckPass(t *testing.T) {
@@ -15,10 +14,11 @@ func TestSimpleHTTPCheckPass(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res := checker.SimpleHTTPCheck(ts.URL)
+	checker := NewHTTPChecker(1 * time.Second)
+	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	res := checkerFunc()
 	if res.Result != true {
-		t.FailNow()
+		t.Errorf("Failed with result: %v", res)
 	}
 }
 
@@ -29,24 +29,26 @@ func TestSimpleHTTPCheckFail(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(3 * time.Second))
-	res := checker.SimpleHTTPCheck(ts.URL)
+	checker := NewHTTPChecker(1 * time.Second)
+	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	res := checkerFunc()
 	if res.Result == true {
 		t.FailNow()
 	}
 }
 
 func TestSimpleHTTPCheckTimeout(t *testing.T) {
-	timeout := time.Duration(100)
+	timeout := time.Millisecond * 100
 	timeoutSleep := timeout + 50
 	ts := ht.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep((timeoutSleep) * time.Millisecond)
+		time.Sleep(timeoutSleep)
 		w.Write([]byte("Exceeded timeout"))
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(timeout * time.Millisecond))
-	res := checker.SimpleHTTPCheck(ts.URL)
+	checker := NewHTTPChecker(100 * time.Millisecond)
+	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	res := checkerFunc()
 	if res.Result == true || res.Duration < timeoutSleep {
 		t.Fail()
 	}
@@ -59,10 +61,15 @@ func TestRegexpHTTPCheckPass(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	checker := NewHTTPChecker(1 * time.Second)
+	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+		"url": ts.URL,
+		"regexpStr": "He[a-z]l(o)?",
+	})
+
+	res := checkerFunc()
 	if res.Result != true {
-		t.Fail()
+		t.Errorf("Failed with result: %v", res)
 	}
 }
 
@@ -73,8 +80,13 @@ func TestRegexpHTTPCheckFailStatus(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	checker := NewHTTPChecker(1 * time.Second)
+	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+		"url": ts.URL,
+		"regexpStr": "He[a-z]l(o)?",
+	})
+
+	res := checkerFunc()
 	if res.Result == true {
 		t.Fail()
 	}
@@ -86,8 +98,13 @@ func TestRegexpHTTPCheckFailMatch(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	checker := NewHTTPChecker(time.Duration(1 * time.Second))
-	res  := checker.RegexpHTTPCheck(ts.URL, regexp.MustCompile(`He[a-z]l(o)?`))
+	checker := NewHTTPChecker(1 * time.Second)
+	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+		"url": ts.URL,
+		"regexpStr": "He[a-z]l(o)?",
+	})
+
+	res := checkerFunc()
 	if res.Result == true {
 		t.Fail()
 	}

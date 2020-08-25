@@ -7,31 +7,37 @@ import (
 	"net/http"
 	"regexp"
 	"time"
-	// get https://github.com/go-gcfg/gcfg/tree/v1.2.3 - dep or modules?
 )
 
+
 type HTTPChecker struct {
-	HTTPClient *http.Client
+	Client *http.Client
 }
 
 func NewHTTPChecker(timeout time.Duration) *HTTPChecker {
-	return &HTTPChecker{HTTPClient: &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
+	checker := HTTPChecker{
+		Client: &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+			Timeout: timeout,
 		},
-		Timeout: timeout,
-	}}
+	}
+	return &checker
 }
 
+// TODO better func name
 func (h *HTTPChecker) checkRequest(url string, checkFn func(*http.Response) bool) (bool, time.Duration) {
 	timeStart := time.Now()
-	resp, err := h.HTTPClient.Get(url)
+	resp, err := h.Client.Get(url)
 	timeElapsed := time.Since(timeStart)
 	if err != nil {
 		// TODO what other errors might this return?
 		// default timeout should be default/10s and allow checks to define custom timeout
 		// that measures timeElapsed and compares to custom value.
 		if err, ok := err.(net.Error); ok && err.Timeout() {
+			//TODO make into a debugging log
+			//fmt.Printf("get error: %v", err)
 			return false, timeElapsed
 		}
 		panic(fmt.Sprintf("Error while checking %s", url))
@@ -67,4 +73,32 @@ func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *CheckResu
 	}
 	success, duration := h.checkRequest(url, contentsCheckWrapper)
 	return &CheckResult{checkTime, checkName, success, duration}
+}
+
+func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) func() *CheckResult {
+	var url string
+	var ok bool
+	if url, ok = args["url"]; !ok {
+		panic("SimpleHTTPCheck missing 'url' parameter")
+	}
+	return func() *CheckResult {
+		return h.SimpleHTTPCheck(url)
+	}
+}
+
+func (h *HTTPChecker) NewRegexpHTTPCheck(args map[string]string) func() *CheckResult {
+	// TODO abstract argument checking
+	var url, regexpStr string
+	var ok bool
+	if url, ok = args["url"]; !ok {
+		panic("RegexpHTTPCheck missing 'url' parameter")
+	}
+	//TODO bad variable name
+	if regexpStr, ok = args["regexpStr"]; !ok {
+		panic("RegexpHTTPCheck missing 'regexpStr' parameter")
+	}
+	regexpArg := regexp.MustCompile(regexpStr)
+	return func() *CheckResult {
+		return h.RegexpHTTPCheck(url, regexpArg)
+	}
 }
