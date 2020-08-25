@@ -10,7 +10,7 @@ import (
 )
 
 type Sink interface {
-	Emit(c CheckResult)
+	Emit(c *CheckResult)
 }
 
 type ConsoleSink struct {
@@ -24,7 +24,6 @@ func NewConsoleSink(stdout bool) *ConsoleSink {
 	return &ConsoleSink{os.Stderr}
 }
 
-
-func (l *ConsoleSink) Emit(c CheckResult) {
+func (l *ConsoleSink) Emit(c *CheckResult) {
 	fmt.Fprintf(l.targetStream, "%s [%s]: %t %s", c.TimestampString(), c.Name, c.Result, c.Duration.Round(time.Millisecond))
 }

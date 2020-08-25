@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-
 type HTTPChecker struct {
 	Client *http.Client
 }
@@ -75,6 +74,7 @@ func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *CheckResu
 	return &CheckResult{checkTime, checkName, success, duration}
 }
 
+//func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) func() *CheckResult {
 func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) func() *CheckResult {
 	var url string
 	var ok bool

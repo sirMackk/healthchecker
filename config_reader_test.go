@@ -1,9 +1,9 @@
 package healthchecker
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
-	"io/ioutil"
 )
 
 func TestSimpleJsonConfigRead(t *testing.T) {
@@ -19,7 +19,7 @@ func TestSimpleJsonConfigRead(t *testing.T) {
 	}
 
 	healthcheckMap := map[string]map[string]string{
-		"basic": {"timeout": "5", "target": "http://example.com"},
+		"basic":    {"timeout": "5", "target": "http://example.com"},
 		"advanced": {"timeout": "7", "target": "https://example.com"},
 	}
 	if !reflect.DeepEqual(config.Healthchecks, healthcheckMap) {

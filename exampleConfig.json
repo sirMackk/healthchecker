@@ -1,0 +1,18 @@
+{
+    "Core": {
+        "HTTPTimeout": "10"
+    },
+    "HealthChecks": [
+        {
+            "blogCheck": {
+                "type": "SimpleHTTPCheck",
+                "args": {
+                    "url": "http://mattscodecave.com"
+                },
+                "sinks": [
+                    {"ConsoleSink": "true"}
+                ]
+            }
+        }
+    ]
+}
