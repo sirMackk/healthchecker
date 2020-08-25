@@ -33,26 +33,20 @@ func NewHTTPChecker(timeout time.Duration) *HTTPChecker {
 	}}
 }
 
-func (h *HTTPChecker) SimpleHTTPCheck(url string) bool {
-	timer_start := time.Now()
+func (h *HTTPChecker) SimpleHTTPCheck(url string) (bool, time.Duration) {
+	timeStart := time.Now()
 	resp, err := h.HTTPClient.Get(url)
-	time_elapsed := time.Now().Sub(timer_start)
+	timeElapsed := time.Since(timeStart)
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return false
+			return false, timeElapsed
 		}
 		panic(fmt.Sprintf("Error while checking %s", url))
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		fmt.Println("check failed")
-		//fmt.Println(resp)
-		fmt.Println(time_elapsed)
-		return false
+		return false, timeElapsed
 	} else {
-		fmt.Println("check succeeded")
-		fmt.Println(resp)
-		fmt.Println(time_elapsed)
-		return true
+		return true, timeElapsed
 	}
 }
