@@ -6,7 +6,7 @@ import (
 
 type Config struct {
 	Core         map[string]string
-	Healthchecks map[string]map[string]string
+	HealthChecks map[string]map[string]string
 }
 
 func ConfigFromJson(fileContents []byte) *Config {
