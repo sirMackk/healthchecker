@@ -6,9 +6,7 @@ import (
 	hc "github.com/sirmackk/healthchecker"
 )
 
-// break out into non-main package
 // introduce interfaces
-// add tests - unit and integration
 
 
 
