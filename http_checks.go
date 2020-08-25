@@ -2,26 +2,18 @@ package healthchecker
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"regexp"
 	"time"
 	// get https://github.com/go-gcfg/gcfg/tree/v1.2.3 - dep or modules?
 )
 
-//func (h *HTTPChecker) AdvancdedHTTPCheck(url string, callback func(*http.Response) bool) {
-//// get site, then call custom callback on response
-//}
-
 // add timing decorator
-
-//func (n *NetworkChecker) ICMPPingCheck() {
-//}
 
 type HTTPChecker struct {
 	HTTPClient *http.Client
-}
-
-type NetworkChecker struct {
 }
 
 func NewHTTPChecker(timeout time.Duration) *HTTPChecker {
@@ -33,20 +25,42 @@ func NewHTTPChecker(timeout time.Duration) *HTTPChecker {
 	}}
 }
 
-func (h *HTTPChecker) SimpleHTTPCheck(url string) (bool, time.Duration) {
+func (h *HTTPChecker) checkRequest(url string, checkFn func(*http.Response) bool) (bool, time.Duration) {
 	timeStart := time.Now()
 	resp, err := h.HTTPClient.Get(url)
 	timeElapsed := time.Since(timeStart)
 	if err != nil {
+		// TODO what other errors might this return?
+		// default timeout should be default/10s and allow checks to define custom timeout
+		// that measures timeElapsed and compares to custom value.
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return false, timeElapsed
 		}
 		panic(fmt.Sprintf("Error while checking %s", url))
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return false, timeElapsed
-	} else {
-		return true, timeElapsed
+	return checkFn(resp), timeElapsed
+}
+
+func (h *HTTPChecker) statusCheck(rsp *http.Response) bool {
+	return rsp.StatusCode >= 200 && rsp.StatusCode < 300
+}
+
+func (h *HTTPChecker) contentsCheck(rsp *http.Response, reg *regexp.Regexp) bool {
+	if !h.statusCheck(rsp) {
+		return false
 	}
+	rspBody, _ := ioutil.ReadAll(rsp.Body)
+	return reg.MatchString(string(rspBody))
+}
+
+func (h *HTTPChecker) SimpleHTTPCheck(url string) (bool, time.Duration) {
+	return h.checkRequest(url, h.statusCheck)
+}
+
+func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) (bool, time.Duration) {
+	contentsCheckWrapper := func(rsp *http.Response) bool {
+		return h.contentsCheck(rsp, rex)
+	}
+	return h.checkRequest(url, contentsCheckWrapper)
 }
