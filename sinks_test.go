@@ -2,11 +2,11 @@ package healthchecker
 
 import (
 	"fmt"
-	"time"
-	"testing"
-	"os"
 	"io/ioutil"
+	"os"
 	"regexp"
+	"testing"
+	"time"
 )
 
 func TestConsoleSinkEmit(t *testing.T) {
@@ -14,7 +14,7 @@ func TestConsoleSinkEmit(t *testing.T) {
 	r, w, _ := os.Pipe()
 	consoleSink.targetStream = w
 	c := CheckResult{time.Now(), "testCheck", false, time.Duration(1)}
-	consoleSink.Emit(c)
+	consoleSink.Emit(&c)
 	w.Close()
 
 	msg, _ := ioutil.ReadAll(r)

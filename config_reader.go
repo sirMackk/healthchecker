@@ -5,7 +5,7 @@ import (
 )
 
 type Config struct {
-	Core map[string]string
+	Core         map[string]string
 	Healthchecks map[string]map[string]string
 }
 
