@@ -16,7 +16,7 @@ func TestNewCheckCorrect(t *testing.T) {
 	registry := NewCheckRegistry()
 	registry.CheckConstructors["testing"] = testingCheckConstructor
 
-	registry.NewCheck("testing", nil, 0, nil)
+	registry.NewCheck("some check", "testing", nil, 0, nil)
 }
 
 func TestNewCheckFail(t *testing.T) {
@@ -25,7 +25,7 @@ func TestNewCheckFail(t *testing.T) {
 		return nil, errors.New("Wat")
 	}
 
-	registry.NewCheck("testing", nil, 0, nil)
+	registry.NewCheck("some check", "testing", nil, 0, nil)
 }
 
 func TestStartRunning(t *testing.T) {
@@ -37,8 +37,8 @@ func TestStartRunning(t *testing.T) {
 	}
 
 	sinks := make([]Sink, 0)
-	registry.NewCheck("testing", nil, 1, sinks)
-	registry.NewCheck("testing", nil, 1, sinks)
+	registry.NewCheck("some check", "testing", nil, 1, sinks)
+	registry.NewCheck("some check", "testing", nil, 1, sinks)
 
 	go registry.StartRunning()
 	time.Sleep(1100 * time.Millisecond)

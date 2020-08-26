@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	hchecker "github.com/sirmackk/healthchecker"
 )
 
@@ -22,7 +24,6 @@ func setupConfig(cfgFilePath string) (*hchecker.Config, error) {
 	if err != nil {
 		return config, fmt.Errorf("Could not parse config file '%s'", cfgFilePath)
 	}
-
 	return config, nil
 }
 
@@ -36,15 +37,16 @@ func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
 }
 
 func registerHealthChecks(c *hchecker.Config, registry *hchecker.CheckRegistry) {
-	for hcName, hcDetails := range c.HealthChecks {
-		sinks, err := createSinks(hcDetails.Sinks, registry)
+	for _, hc := range c.HealthChecks {
+		log.Debugf("Creating sinks for %s", hc.Name)
+		sinks, err := createSinks(hc.Sinks, registry)
 		if err != nil {
-			fmt.Printf("Could not register %s due to: %s\n", hcName, err)
+			log.Errorf("Could not register %s due to: %s", hc.Name, err)
 			continue
 		}
-		_, err = registry.NewCheck(hcDetails.Type, hcDetails.Args, hcDetails.Interval, sinks)
+		_, err = registry.NewCheck(hc.Name, hc.Type, hc.Args, hc.Interval, sinks)
 		if err != nil {
-			fmt.Printf("Could not register %s due to %s\n", hcName, err)
+			log.Errorf("Could not register %s due to: %s", hc.Name, err)
 		}
 	}
 }
@@ -67,17 +69,26 @@ func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.C
 func main() {
 	var cfgFilePath = flag.String("cfgFilePath", "config.yaml", "Absolute path to yaml config file")
 	var printVersion = flag.Bool("version", false, "Print version")
-
+	var debug = flag.Bool("debug", false, "Enable debug logging")
 	flag.Parse()
 
 	if *printVersion {
-		fmt.Printf("version: %s\n", version)
+		log.Infof("Version: %s", version)
 		os.Exit(0)
+	}
+
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+	if *debug {
+		log.Info("Enabling debug-level logging")
+		log.SetLevel(log.DebugLevel)
 	}
 
 	config, err := setupConfig(*cfgFilePath)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		os.Exit(1)
 	}
 	registry := hchecker.NewCheckRegistry()
