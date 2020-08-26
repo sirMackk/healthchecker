@@ -10,7 +10,7 @@ type Config struct {
 	HealthChecks []struct {
 		Type  string
 		Args  map[string]string
-		Sinks []map[string][]string
+		Sinks []map[string]map[string]string
 	} `health-checks`
 }
 

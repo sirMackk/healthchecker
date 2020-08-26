@@ -15,7 +15,8 @@ func TestSimpleYamlConfigRead(t *testing.T) {
 	blogCheck := config.HealthChecks[0]
 	if blogCheck.Type != "SimpleHTTPCheck" ||
 		!reflect.DeepEqual(blogCheck.Args, map[string]string{"url": "http://mattscodecave.com"}) ||
-		!reflect.DeepEqual(blogCheck.Sinks[0], map[string][]string{"ConsoleSink": []string{"true"}}) {
+		!reflect.DeepEqual(blogCheck.Sinks[0],
+			map[string]map[string]string{"ConsoleSink": map[string]string{"useStdout": "true"}}) {
 		t.Errorf("Fail: %s\n%v", exampleYaml, config)
 	}
 }

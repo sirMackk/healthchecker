@@ -25,25 +25,25 @@ func (h *HealthCheck) Run() {
 }
 
 type HealthCheckConstructor func(map[string]string) func() *CheckResult
+type SinkConstructor func(map[string]string) Sink
 
 type CheckRegistry struct {
-	CheckFuncs map[string]HealthCheckConstructor
-	Checks     []*HealthCheck
-	// TODO: generalize to Sink interface
-	Sinks map[string]func(string) Sink
+	CheckConstructors map[string]HealthCheckConstructor
+	SinkConstructors  map[string]SinkConstructor
+	Checks            []*HealthCheck
 }
 
 func NewCheckRegistry() *CheckRegistry {
 	registry := CheckRegistry{}
-	registry.CheckFuncs = make(map[string]HealthCheckConstructor)
+	registry.CheckConstructors = make(map[string]HealthCheckConstructor)
+	registry.SinkConstructors = make(map[string]SinkConstructor)
 	registry.Checks = make([]*HealthCheck, 0)
-	registry.Sinks = make(map[string]func(string) Sink)
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(name string, args map[string]string, sinks []Sink) *HealthCheck {
+func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, sinks []Sink) *HealthCheck {
 	hc := HealthCheck{
-		check: c.CheckFuncs[name](args),
+		check: c.CheckConstructors[checkType](checkArgs),
 		sinks: sinks,
 	}
 	c.Checks = append(c.Checks, &hc)

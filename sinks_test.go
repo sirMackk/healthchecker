@@ -10,11 +10,12 @@ import (
 )
 
 func TestConsoleSinkEmit(t *testing.T) {
-	consoleSink = NewConsoleSink("true")
+	consoleSink := NewConsoleSink(map[string]string{"useStdout": "true"})
+	cs := consoleSink.(*ConsoleSink)
 	r, w, _ := os.Pipe()
-	consoleSink.targetStream = w
+	cs.TargetStream = w
 	c := CheckResult{time.Now(), "testCheck", false, time.Duration(1)}
-	consoleSink.Emit(&c)
+	cs.Emit(&c)
 	w.Close()
 
 	msg, _ := ioutil.ReadAll(r)

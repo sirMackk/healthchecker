@@ -8,4 +8,4 @@ health-checks:
       url: http://mattscodecave.com
     sinks:
       - ConsoleSink:
-        - true
+          useStdout: true
