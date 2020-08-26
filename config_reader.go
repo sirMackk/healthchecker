@@ -6,14 +6,13 @@ import (
 )
 
 type Config struct {
-	Core map[string]string
+	Core         map[string]string
 	HealthChecks []struct {
-		Type string
-		Args map[string]string
+		Type  string
+		Args  map[string]string
 		Sinks []map[string][]string
 	} `health-checks`
 }
-
 
 func ConfigFromJson(fileContents []byte) *Config {
 	var config Config
@@ -23,7 +22,6 @@ func ConfigFromJson(fileContents []byte) *Config {
 	}
 	return &config
 }
-
 
 func ConfigFromYaml(fileContents []byte) *Config {
 	c := Config{}

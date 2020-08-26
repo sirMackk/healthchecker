@@ -30,11 +30,14 @@ type CheckRegistry struct {
 	CheckFuncs map[string]HealthCheckConstructor
 	Checks     []*HealthCheck
 	// TODO: generalize to Sink interface
-	Sinks	   map[string]func(bool) Sink
+	Sinks map[string]func(string) Sink
 }
 
 func NewCheckRegistry() *CheckRegistry {
 	registry := CheckRegistry{}
+	registry.CheckFuncs = make(map[string]HealthCheckConstructor)
+	registry.Checks = make([]*HealthCheck, 0)
+	registry.Sinks = make(map[string]func(string) Sink)
 	return &registry
 }
 
