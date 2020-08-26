@@ -108,3 +108,11 @@ func TestRegexpHTTPCheckFailMatch(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestSimpleHTTPCheckNoURLArg(t *testing.T) {
+	checker := NewHTTPChecker(1 * time.Second)
+	_, err := checker.NewSimpleHTTPCheck(map[string]string{})
+	if err == nil {
+		t.Fail()
+	}
+}

@@ -52,6 +52,7 @@ type CheckRegistry struct {
 	CheckConstructors map[string]HealthCheckConstructor
 	SinkConstructors  map[string]SinkConstructor
 	Checks            []*HealthCheck
+	running           bool
 }
 
 func NewCheckRegistry() *CheckRegistry {
@@ -59,13 +60,14 @@ func NewCheckRegistry() *CheckRegistry {
 	registry.CheckConstructors = make(map[string]HealthCheckConstructor)
 	registry.SinkConstructors = make(map[string]SinkConstructor)
 	registry.Checks = make([]*HealthCheck, 0)
+	registry.running = false
 	return &registry
 }
 
 func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, interval int, sinks []Sink) (*HealthCheck, error) {
 	newCheck, err := c.CheckConstructors[checkType](checkArgs)
 	if err != nil {
-		return &HealthCheck{}, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
+		return nil, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
 	}
 	hc := HealthCheck{
 		check:    newCheck,
@@ -78,6 +80,7 @@ func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, 
 
 func (c *CheckRegistry) StartRunning() {
 	//TODO: Refactor: Running the checks shouldn't belong in the registry.
+	c.running = true
 	var wg sync.WaitGroup
 	for _, check := range c.Checks {
 		wg.Add(1)
@@ -86,11 +89,18 @@ func (c *CheckRegistry) StartRunning() {
 			defer wg.Done()
 			check.Run()
 			for range time.Tick(check.Interval) {
+				if !c.running {
+					return
+				}
 				check.Run()
 			}
 		}()
 	}
 	wg.Wait()
+}
+
+func (c *CheckRegistry) StopRunning() {
+	c.running = false
 }
 
 func (c *CheckResult) TimestampString() string {
