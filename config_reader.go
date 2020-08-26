@@ -1,7 +1,7 @@
 package healthchecker
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/go-yaml/yaml"
 )
 
@@ -14,20 +14,11 @@ type Config struct {
 	} `health-checks`
 }
 
-func ConfigFromJson(fileContents []byte) *Config {
-	var config Config
-	err := json.Unmarshal(fileContents, &config)
-	if err != nil {
-		panic("Cannot create Config from json")
-	}
-	return &config
-}
-
-func ConfigFromYaml(fileContents []byte) *Config {
+func ConfigFromYaml(fileContents []byte) (*Config, error) {
 	c := Config{}
 	err := yaml.Unmarshal(fileContents, &c)
 	if err != nil {
-		panic("Cannot create config from yaml")
+		return &Config{}, fmt.Errorf("Cannot create config from yaml: %s", string(fileContents))
 	}
-	return &c
+	return &c, nil
 }

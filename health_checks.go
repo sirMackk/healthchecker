@@ -5,10 +5,29 @@ import (
 	"time"
 )
 
+type Outcome int
+
+const (
+	Success Outcome = 0
+	Failure Outcome = 1
+	Error   Outcome = 2
+)
+
+func (o Outcome) String() string {
+	switch o {
+	case 0:
+		return "Success"
+	case 1:
+		return "Failure"
+	default:
+		return "Error"
+	}
+}
+
 type CheckResult struct {
 	Timestamp time.Time
 	Name      string
-	Result    bool
+	Result    Outcome
 	Duration  time.Duration
 }
 
@@ -24,8 +43,8 @@ func (h *HealthCheck) Run() {
 	}
 }
 
-type HealthCheckConstructor func(map[string]string) func() *CheckResult
-type SinkConstructor func(map[string]string) Sink
+type HealthCheckConstructor func(map[string]string) (func() *CheckResult, error)
+type SinkConstructor func(map[string]string) (Sink, error)
 
 type CheckRegistry struct {
 	CheckConstructors map[string]HealthCheckConstructor
@@ -41,13 +60,17 @@ func NewCheckRegistry() *CheckRegistry {
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, sinks []Sink) *HealthCheck {
+func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, sinks []Sink) (*HealthCheck, error) {
+	newCheck, err := c.CheckConstructors[checkType](checkArgs)
+	if err != nil {
+		return &HealthCheck{}, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
+	}
 	hc := HealthCheck{
-		check: c.CheckConstructors[checkType](checkArgs),
+		check: newCheck,
 		sinks: sinks,
 	}
 	c.Checks = append(c.Checks, &hc)
-	return &hc
+	return &hc, nil
 }
 
 func (c *CheckResult) TimestampString() string {

@@ -8,7 +8,7 @@ import (
 
 func TestSimpleYamlConfigRead(t *testing.T) {
 	exampleYaml, _ := ioutil.ReadFile("fixtures/exampleConfig.yaml")
-	config := ConfigFromYaml(exampleYaml)
+	config, _ := ConfigFromYaml(exampleYaml)
 	if config.Core["HTTPTimeout"] != "10" {
 		t.Errorf("Fail: %s\n%v", exampleYaml, config)
 	}
