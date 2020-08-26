@@ -15,9 +15,9 @@ func TestSimpleHTTPCheckPass(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(1 * time.Second)
-	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	checkerFunc, _ := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
 	res := checkerFunc()
-	if res.Result != true {
+	if res.Result != Success {
 		t.Errorf("Failed with result: %v", res)
 	}
 }
@@ -30,9 +30,9 @@ func TestSimpleHTTPCheckFail(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(1 * time.Second)
-	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	checkerFunc, _ := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
 	res := checkerFunc()
-	if res.Result == true {
+	if res.Result == Success {
 		t.FailNow()
 	}
 }
@@ -47,9 +47,9 @@ func TestSimpleHTTPCheckTimeout(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(100 * time.Millisecond)
-	checkerFunc := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
+	checkerFunc, _ := checker.NewSimpleHTTPCheck(map[string]string{"url": ts.URL})
 	res := checkerFunc()
-	if res.Result == true || res.Duration < timeoutSleep {
+	if res.Result == Success || res.Duration < timeoutSleep {
 		t.Fail()
 	}
 }
@@ -61,13 +61,13 @@ func TestRegexpHTTPCheckPass(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(1 * time.Second)
-	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+	checkerFunc, _ := checker.NewRegexpHTTPCheck(map[string]string{
 		"url":       ts.URL,
 		"regexpStr": "He[a-z]l(o)?",
 	})
 
 	res := checkerFunc()
-	if res.Result != true {
+	if res.Result != Success {
 		t.Errorf("Failed with result: %v", res)
 	}
 }
@@ -80,13 +80,13 @@ func TestRegexpHTTPCheckFailStatus(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(1 * time.Second)
-	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+	checkerFunc, _ := checker.NewRegexpHTTPCheck(map[string]string{
 		"url":       ts.URL,
 		"regexpStr": "He[a-z]l(o)?",
 	})
 
 	res := checkerFunc()
-	if res.Result == true {
+	if res.Result == Success {
 		t.Fail()
 	}
 }
@@ -98,13 +98,13 @@ func TestRegexpHTTPCheckFailMatch(t *testing.T) {
 	defer ts.Close()
 
 	checker := NewHTTPChecker(1 * time.Second)
-	checkerFunc := checker.NewRegexpHTTPCheck(map[string]string{
+	checkerFunc, _ := checker.NewRegexpHTTPCheck(map[string]string{
 		"url":       ts.URL,
 		"regexpStr": "He[a-z]l(o)?",
 	})
 
 	res := checkerFunc()
-	if res.Result == true {
+	if res.Result == Success {
 		t.Fail()
 	}
 }
