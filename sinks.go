@@ -21,11 +21,11 @@ type ConsoleSink struct {
 func NewConsoleSink(args map[string]string) (Sink, error) {
 	useStdout, ok := args["useStdout"]
 	if !ok {
-		return &ConsoleSink{}, fmt.Errorf("Error creating ConsoleSink - useStdout option missing")
+		return nil, fmt.Errorf("Error creating ConsoleSink - useStdout option missing")
 	}
 	choice, err := strconv.ParseBool(useStdout)
 	if err != nil {
-		return &ConsoleSink{}, fmt.Errorf("Error parsing ConsoleSink 'useStdout' option")
+		return nil, fmt.Errorf("Error parsing ConsoleSink 'useStdout' option")
 	}
 
 	if !choice {

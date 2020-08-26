@@ -19,7 +19,7 @@ func ConfigFromYaml(fileContents []byte) (*Config, error) {
 	c := Config{}
 	err := yaml.Unmarshal(fileContents, &c)
 	if err != nil {
-		return &Config{}, fmt.Errorf("Cannot create config from yaml: %s", string(fileContents))
+		return nil, fmt.Errorf("Cannot create config from yaml: %s", string(fileContents))
 	}
 	return &c, nil
 }

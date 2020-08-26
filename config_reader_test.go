@@ -20,3 +20,14 @@ func TestSimpleYamlConfigRead(t *testing.T) {
 		t.Errorf("Fail: %s\n%v", exampleYaml, config)
 	}
 }
+
+func TestSimpleYamlConfigReadFailure(t *testing.T) {
+	badYaml := `
+	---
+	something: 10
+	bla bla bla`
+	config, err := ConfigFromYaml([]byte(badYaml))
+	if err == nil {
+		t.Errorf("Was supposed to fail on bad yaml, got: %v", config)
+	}
+}
