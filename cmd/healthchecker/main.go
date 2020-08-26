@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"io/ioutil"
@@ -9,6 +10,8 @@ import (
 
 	hchecker "github.com/sirmackk/healthchecker"
 )
+
+var version string = "0.0.1"
 
 func setupConfig(cfgFilePath string) (*hchecker.Config, error) {
 	contents, err := ioutil.ReadFile(cfgFilePath)
@@ -62,8 +65,17 @@ func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.C
 
 
 func main() {
-	cfgFilePath := "exampleConfig.yaml"
-	config, err := setupConfig(cfgFilePath)
+	var cfgFilePath = flag.String("cfgFilePath", "config.yaml", "Absolute path to yaml config file")
+	var printVersion = flag.Bool("version", false, "Print version")
+
+	flag.Parse()
+
+	if *printVersion {
+		fmt.Printf("version: %s\n", version)
+		os.Exit(0)
+	}
+
+	config, err := setupConfig(*cfgFilePath)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
