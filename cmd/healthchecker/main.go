@@ -25,9 +25,10 @@ func main() {
 	// register available health check modules
 	httpTimeout, _ := strconv.Atoi(config.Core["HTTPTimeout"])
 	httpChecker := hchecker.NewHTTPChecker(time.Duration(httpTimeout) * time.Second)
-	registry.CheckFuncs["SimpleHTTPCheck"] = httpChecker.NewSimpleHTTPCheck
-	registry.CheckFuncs["RegexpHTTPCheck"] = httpChecker.NewRegexpHTTPCheck
-	registry.Sinks["ConsoleSink"] = hchecker.NewConsoleSink
+
+	registry.CheckConstructors["SimpleHTTPCheck"] = httpChecker.NewSimpleHTTPCheck
+	registry.CheckConstructors["RegexpHTTPCheck"] = httpChecker.NewRegexpHTTPCheck
+	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
 
 	// register health checks
 	// TODO unfuck this mess into neat code
@@ -37,7 +38,7 @@ func main() {
 		sinks := make([]hchecker.Sink, 0)
 		for _, s := range hcDetails.Sinks {
 			for sinkName, sinkArgs := range s {
-				sinks = append(sinks, registry.Sinks[sinkName](sinkArgs[0]))
+				sinks = append(sinks, registry.SinkConstructors[sinkName](sinkArgs))
 			}
 		}
 		registry.NewCheck(checkType, checkArgs, sinks)

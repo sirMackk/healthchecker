@@ -15,21 +15,23 @@ type Sink interface {
 }
 
 type ConsoleSink struct {
-	targetStream *os.File
+	TargetStream *os.File
 }
 
-func NewConsoleSink(useStdout string) Sink {
-
+func NewConsoleSink(args map[string]string) Sink {
+	useStdout, ok := args["useStdout"]
+	if !ok {
+		fmt.Println("Error creating NewConsoleSink - useStdout missing!")
+		panic("wot")
+	}
 	choice, err := strconv.ParseBool(useStdout)
-	if err != nil {
-		panic("NewConsoleSink arguments not true or false")
+	if err != nil || !choice {
+		fmt.Println("Error parsing useStdout - using stdout")
+		return &ConsoleSink{TargetStream: os.Stderr}
 	}
-	if choice {
-		return &ConsoleSink{os.Stdout}
-	}
-	return &ConsoleSink{os.Stderr}
+	return &ConsoleSink{TargetStream: os.Stdout}
 }
 
-func (l *ConsoleSink) Emit(c *CheckResult) {
-	fmt.Fprintf(l.targetStream, "%s [%s]: %t %s\n", c.TimestampString(), c.Name, c.Result, c.Duration.Round(time.Millisecond))
+func (s *ConsoleSink) Emit(c *CheckResult) {
+	fmt.Fprintf(s.TargetStream, "%s [%s]: %t %s\n", c.TimestampString(), c.Name, c.Result, c.Duration.Round(time.Millisecond))
 }
