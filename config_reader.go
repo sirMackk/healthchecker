@@ -8,9 +8,10 @@ import (
 type Config struct {
 	Core         map[string]string
 	HealthChecks []struct {
-		Type  string
-		Args  map[string]string
-		Sinks []map[string]map[string]string
+		Type     string
+		Args     map[string]string
+		Sinks    []map[string]map[string]string
+		Interval int
 	} `health-checks`
 }
 

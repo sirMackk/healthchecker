@@ -6,6 +6,7 @@ health-checks:
     type: SimpleHTTPCheck
     args:
       url: http://mattscodecave.com
+    interval: 5
     sinks:
       - ConsoleSink:
           useStdout: true
