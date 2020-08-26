@@ -39,7 +39,7 @@ func registerHealthChecks(c *hchecker.Config, registry *hchecker.CheckRegistry) 
 			fmt.Printf("Could not register %s due to: %s\n", hcName, err)
 			continue
 		}
-		_, err = registry.NewCheck(hcDetails.Type, hcDetails.Args, sinks)
+		_, err = registry.NewCheck(hcDetails.Type, hcDetails.Args, hcDetails.Interval, sinks)
 		if err != nil {
 			fmt.Printf("Could not register %s due to %s\n", hcName, err)
 		}
@@ -76,6 +76,5 @@ func main() {
 	// register health checks
 	registerHealthChecks(config, registry)
 
-	// TODO create checkRunner
-	registry.Checks[0].Run()
+	registry.StartRunning()
 }

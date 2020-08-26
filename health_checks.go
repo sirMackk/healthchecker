@@ -2,6 +2,7 @@ package healthchecker
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -32,8 +33,9 @@ type CheckResult struct {
 }
 
 type HealthCheck struct {
-	check func() *CheckResult
-	sinks []Sink
+	check    func() *CheckResult
+	sinks    []Sink
+	Interval time.Duration
 }
 
 func (h *HealthCheck) Run() {
@@ -60,17 +62,35 @@ func NewCheckRegistry() *CheckRegistry {
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, sinks []Sink) (*HealthCheck, error) {
+func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, interval int, sinks []Sink) (*HealthCheck, error) {
 	newCheck, err := c.CheckConstructors[checkType](checkArgs)
 	if err != nil {
 		return &HealthCheck{}, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
 	}
 	hc := HealthCheck{
-		check: newCheck,
-		sinks: sinks,
+		check:    newCheck,
+		sinks:    sinks,
+		Interval: time.Duration(interval) * time.Second,
 	}
 	c.Checks = append(c.Checks, &hc)
 	return &hc, nil
+}
+
+func (c *CheckRegistry) StartRunning() {
+	//TODO: Refactor: Running the checks shouldn't belong in the registry.
+	var wg sync.WaitGroup
+	for _, check := range c.Checks {
+		wg.Add(1)
+		// TODO something to catch errors and restart goroutines with checks
+		go func() {
+			defer wg.Done()
+			check.Run()
+			for range time.Tick(check.Interval) {
+				check.Run()
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func (c *CheckResult) TimestampString() string {
