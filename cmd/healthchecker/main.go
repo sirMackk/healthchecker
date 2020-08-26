@@ -17,32 +17,44 @@ func setupConfig(cfgFilePath string) *hchecker.Config {
 	return hchecker.ConfigFromYaml(contents)
 }
 
+func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
+	httpTimeout, _ := strconv.Atoi(c.Core["HTTPTimeout"])
+	httpChecker := hchecker.NewHTTPChecker(time.Duration(httpTimeout) * time.Second)
+
+	registry.CheckConstructors["SimpleHTTPCheck"] = httpChecker.NewSimpleHTTPCheck
+	registry.CheckConstructors["RegexpHTTPCheck"] = httpChecker.NewRegexpHTTPCheck
+	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
+}
+
+func registerHealthChecks(c *hchecker.Config, registry *hchecker.CheckRegistry) {
+	for _, hcDetails := range c.HealthChecks {
+		sinks := createSinks(hcDetails.Sinks, registry)
+		registry.NewCheck(hcDetails.Type, hcDetails.Args, sinks)
+	}
+}
+
+func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.CheckRegistry) []hchecker.Sink {
+	sinks := make([]hchecker.Sink, 0)
+	for _, sink := range sinkConfig {
+		for sinkName, sinkArgs := range sink {
+			sinks = append(sinks, registry.SinkConstructors[sinkName](sinkArgs))
+		}
+	}
+	return sinks
+}
+
+
 func main() {
 	cfgFilePath := "exampleConfig.yaml"
 	config := setupConfig(cfgFilePath)
 	registry := hchecker.NewCheckRegistry()
 
 	// register available health check modules
-	httpTimeout, _ := strconv.Atoi(config.Core["HTTPTimeout"])
-	httpChecker := hchecker.NewHTTPChecker(time.Duration(httpTimeout) * time.Second)
-
-	registry.CheckConstructors["SimpleHTTPCheck"] = httpChecker.NewSimpleHTTPCheck
-	registry.CheckConstructors["RegexpHTTPCheck"] = httpChecker.NewRegexpHTTPCheck
-	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
+	populateRegistry(config, registry)
 
 	// register health checks
-	// TODO unfuck this mess into neat code
-	for _, hcDetails := range config.HealthChecks {
-		checkType := hcDetails.Type
-		checkArgs := hcDetails.Args
-		sinks := make([]hchecker.Sink, 0)
-		for _, s := range hcDetails.Sinks {
-			for sinkName, sinkArgs := range s {
-				sinks = append(sinks, registry.SinkConstructors[sinkName](sinkArgs))
-			}
-		}
-		registry.NewCheck(checkType, checkArgs, sinks)
-	}
+	registerHealthChecks(config, registry)
+
 	// TODO create checkRunner
 	registry.Checks[0].Run()
 }
