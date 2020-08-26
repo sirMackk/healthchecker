@@ -2,7 +2,7 @@
 core:
   HTTPTimeout: '10'
 health-checks:
-  - blogCheck:
+  - name: BlogCheck
     type: SimpleHTTPCheck
     args:
       url: http://mattscodecave.com

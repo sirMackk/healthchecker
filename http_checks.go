@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"regexp"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type HTTPChecker struct {
@@ -31,12 +33,8 @@ func (h *HTTPChecker) checkRequest(url string, checkFn func(*http.Response) Outc
 	resp, err := h.Client.Get(url)
 	timeElapsed := time.Since(timeStart)
 	if err != nil {
-		// TODO what other errors might this return?
-		// default timeout should be default/10s and allow checks to define custom timeout
-		// that measures timeElapsed and compares to custom value.
+		log.Debugf("checkRequest to %s failed: %v", url, err)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
-			//TODO make into a debugging log
-			//fmt.Printf("get error: %v", err)
 			return Failure, timeElapsed
 		}
 		return Error, timeElapsed

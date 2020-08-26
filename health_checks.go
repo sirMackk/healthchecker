@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Outcome int
@@ -36,6 +38,7 @@ type HealthCheck struct {
 	check    func() *CheckResult
 	sinks    []Sink
 	Interval time.Duration
+	Name     string
 }
 
 func (h *HealthCheck) Run() {
@@ -56,6 +59,7 @@ type CheckRegistry struct {
 }
 
 func NewCheckRegistry() *CheckRegistry {
+	log.Debug("Creating new CheckRegistry")
 	registry := CheckRegistry{}
 	registry.CheckConstructors = make(map[string]HealthCheckConstructor)
 	registry.SinkConstructors = make(map[string]SinkConstructor)
@@ -64,15 +68,20 @@ func NewCheckRegistry() *CheckRegistry {
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, interval int, sinks []Sink) (*HealthCheck, error) {
+func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Sink) (*HealthCheck, error) {
+	log.Infof("Creating new health check: %s (%s) (%v)", checkType, checkName, checkArgs)
 	newCheck, err := c.CheckConstructors[checkType](checkArgs)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
+		errMsg := fmt.Sprintf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
+		log.Error(errMsg)
+		return nil, fmt.Errorf(errMsg)
 	}
+
 	hc := HealthCheck{
 		check:    newCheck,
 		sinks:    sinks,
 		Interval: time.Duration(interval) * time.Second,
+		Name:     checkName,
 	}
 	c.Checks = append(c.Checks, &hc)
 	return &hc, nil
@@ -80,6 +89,7 @@ func (c *CheckRegistry) NewCheck(checkType string, checkArgs map[string]string, 
 
 func (c *CheckRegistry) StartRunning() {
 	//TODO: Refactor: Running the checks shouldn't belong in the registry.
+	log.Infof("Will start %d health checks", len(c.Checks))
 	c.running = true
 	var wg sync.WaitGroup
 	for _, check := range c.Checks {
@@ -87,11 +97,14 @@ func (c *CheckRegistry) StartRunning() {
 		// TODO something to catch errors and restart goroutines with checks
 		go func() {
 			defer wg.Done()
+			log.Infof("Running check: %s", check.Name)
 			check.Run()
 			for range time.Tick(check.Interval) {
 				if !c.running {
+					log.Infof("Stopping check: %s", check.Name)
 					return
 				}
+				log.Infof("Running check: %s", check.Name)
 				check.Run()
 			}
 		}()
@@ -100,6 +113,7 @@ func (c *CheckRegistry) StartRunning() {
 }
 
 func (c *CheckRegistry) StopRunning() {
+	log.Info("Stopping health checks")
 	c.running = false
 }
 
