@@ -31,19 +31,18 @@ func main() {
 
 	// register health checks
 	// TODO unfuck this mess into neat code
-	for _, hc := range config.HealthChecks {
-		for _, checkDetails := range hc {
-			// TODO unfuck json decoding
-			checkType := string(checkDetails["type"])
-			checkArgs := checkDetails["args"]
-			sinks := make([]hchecker.Sink, 0)
-			for _, s := range checkDetails["sinks"] {
-				for sinkName, sinkArgs := range s {
-					sinks = append(sinks, registry.Sinks[sinkName](sinkArgs))
-				}
+	for hcName, hcDetails := range config.HealthChecks {
+		checkType := hcDetails.Type
+		checkArgs := hcDetails.Args
+		sinks := make([]hchecker.Sink, 0)
+		for _, s := range hcDetails.Sinks {
+			for sinkName, sinkArgs := range s {
+	// ../src/github.com/sirmackk/healthchecker/cmd/healthchecker/main.go:40:51: cannot use sinkArgs (type []string) as type bool in argument to registry.Sinks[sinkName]
+	//../src/github.com/sirmackk/healthchecker/cmd/healthchecker/main.go:40:51: invalid use of ... in call to registry.Sinks[sinkName]
+				sinks = append(sinks, registry.Sinks[sinkName](sinkArgs...))
 			}
-			registry.NewCheck(checkType, checkArgs, sinks)
 		}
+		registry.NewCheck(checkType, checkArgs, sinks)
 	}
 	// TODO create checkRunner
 	registry.Checks[0].Run()

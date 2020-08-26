@@ -1,8 +1,8 @@
 package healthchecker
 
 import (
-	"fmt"
 	"io/ioutil"
+	"reflect"
 	"testing"
 )
 
@@ -12,5 +12,10 @@ func TestSimpleYamlConfigRead(t *testing.T) {
 	if config.Core["HTTPTimeout"] != "10" {
 		t.Errorf("Fail: %s\n%v", exampleYaml, config)
 	}
-	// TODO add finer check
+	blogCheck := config.HealthChecks[0]
+	if blogCheck.Type != "SimpleHTTPCheck" ||
+		!reflect.DeepEqual(blogCheck.Args, map[string]string{"url": "http://mattscodecave.com"}) ||
+		!reflect.DeepEqual(blogCheck.Sinks[0], map[string][]string{"ConsoleSink": []string{"true"}}) {
+			t.Errorf("Fail: %s\n%v", exampleYaml, config)
+	}
 }
