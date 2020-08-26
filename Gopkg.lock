@@ -7,9 +7,27 @@
   revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
   version = "v2.2.2"
 
+[[projects]]
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "8bdbc7bcc01dcbb8ec23dc8a28e332258d25251f"
+  version = "v1.4.1"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "0ad05ae3009d6413d3363aa09b350b2ec37daf09"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "053bf567a5ce90d2e89fa7b9149350223218fa5b0b469915606095f9acd1ddfc"
+  inputs-digest = "8cd56119c5cbe46a8e3ed499e39191c8e2df1ba3b100c03b94580be39766ae56"
   solver-name = "gps-cdcl"
   solver-version = 1
