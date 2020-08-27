@@ -36,7 +36,7 @@ func TestStartRunning(t *testing.T) {
 		return func() *CheckResult { return nil }, nil
 	}
 
-	sinks := make([]Sink, 0)
+	sinks := make([]Emitter, 0)
 	registry.NewCheck("some check", "testing", nil, 1, sinks)
 	registry.NewCheck("some check", "testing", nil, 1, sinks)
 

@@ -35,7 +35,7 @@ type CheckResult struct {
 
 type HealthCheck struct {
 	check    func() *CheckResult
-	sinks    []Sink
+	sinks    []Emitter
 	Interval time.Duration
 	Name     string
 	Type     string
@@ -49,7 +49,7 @@ func (h *HealthCheck) Run() {
 }
 
 type HealthCheckConstructor func(map[string]string) (func() *CheckResult, error)
-type SinkConstructor func(map[string]string) (Sink, error)
+type SinkConstructor func(map[string]string) (Emitter, error)
 
 type CheckRegistry struct {
 	CheckConstructors map[string]HealthCheckConstructor
@@ -68,7 +68,7 @@ func NewCheckRegistry() *CheckRegistry {
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Sink) (*HealthCheck, error) {
+func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Emitter) (*HealthCheck, error) {
 	log.Infof("Creating new health check: %s (%s) (%v)", checkType, checkName, checkArgs)
 	newCheck, err := c.CheckConstructors[checkType](checkArgs)
 	if err != nil {

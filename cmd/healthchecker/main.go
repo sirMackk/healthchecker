@@ -51,8 +51,8 @@ func registerHealthChecks(c *hchecker.Config, registry *hchecker.CheckRegistry) 
 	}
 }
 
-func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.CheckRegistry) ([]hchecker.Sink, error) {
-	sinks := make([]hchecker.Sink, 0)
+func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.CheckRegistry) ([]hchecker.Emitter, error) {
+	sinks := make([]hchecker.Emitter, 0)
 	for _, sink := range sinkConfig {
 		for sinkName, sinkArgs := range sink {
 			newSink, err := registry.SinkConstructors[sinkName](sinkArgs)

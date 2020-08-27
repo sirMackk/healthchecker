@@ -9,8 +9,7 @@ import (
 	influx_client "github.com/influxdata/influxdb/client/v2"
 )
 
-// TODO rename Emitter
-type Sink interface {
+type Emitter interface {
 	Emit(name, ctype string, c *CheckResult)
 }
 
@@ -18,7 +17,7 @@ type ConsoleSink struct {
 	TargetStream *os.File
 }
 
-func NewConsoleSink(args map[string]string) (Sink, error) {
+func NewConsoleSink(args map[string]string) (Emitter, error) {
 	useStdout, ok := args["useStdout"]
 	if !ok {
 		return nil, fmt.Errorf("Error creating ConsoleSink - useStdout option missing")
@@ -45,7 +44,7 @@ type UDPInfluxSink struct {
 	collectorRunning bool
 }
 
-func NewUDPInfluxSink(args map[string]string) (Sink, error) {
+func NewUDPInfluxSink(args map[string]string) (Emitter, error) {
 	addr, ok := args["addr"]
 	if !ok {
 		return nil, fmt.Errorf("Error creating UDPInfluxSink - addr option missing")
