@@ -29,10 +29,17 @@ func setupConfig(cfgFilePath string) (*hchecker.Config, error) {
 
 func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
 	httpTimeout, _ := strconv.Atoi(c.Core["HTTPTimeout"])
+	icmpTimeout, _ := strconv.Atoi(c.Core["ICMPV4Timeout"])
 	httpChecker := hchecker.NewHTTPChecker(time.Duration(httpTimeout) * time.Second)
-
+	icmpChecker, err := hchecker.NewICMPChecker(time.Duration(icmpTimeout) * time.Second)
+	if err == nil {
+		registry.CheckConstructors["ICMPV4Check"] = icmpChecker.NewICMPV4Check
+	} else {
+		log.Errorf("Error initializing ICMPChecker: %s", err)
+	}
 	registry.CheckConstructors["SimpleHTTPCheck"] = httpChecker.NewSimpleHTTPCheck
 	registry.CheckConstructors["RegexpHTTPCheck"] = httpChecker.NewRegexpHTTPCheck
+
 	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
 }
 

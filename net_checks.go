@@ -2,6 +2,7 @@ package healthchecker
 
 import (
 	"fmt"
+	"os"
 	"net"
 	"time"
 
@@ -29,6 +30,10 @@ type ICMPChecker struct {
 }
 
 func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
+	_, isSudo := os.LookupEnv("SUDO_COMMAND")
+	if !isSudo {
+		return nil, fmt.Errorf("If you want to use ICMPChecker, you must run as sudo")
+	}
 	conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
 		return nil, err

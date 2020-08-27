@@ -70,11 +70,13 @@ func NewCheckRegistry() *CheckRegistry {
 
 func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Emitter) (*HealthCheck, error) {
 	log.Infof("Creating new health check: %s (%s) (%v)", checkType, checkName, checkArgs)
-	newCheck, err := c.CheckConstructors[checkType](checkArgs)
+	checkConstructor, ok := c.CheckConstructors[checkType]
+	if !ok {
+		return nil, fmt.Errorf("Unable to create check: '%s:%s' because it's not registered", checkType, checkName)
+	}
+	newCheck, err := checkConstructor(checkArgs)
 	if err != nil {
-		errMsg := fmt.Sprintf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
-		log.Error(errMsg)
-		return nil, fmt.Errorf(errMsg)
+		return nil, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
 	}
 
 	hc := HealthCheck{
