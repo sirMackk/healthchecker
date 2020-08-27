@@ -62,20 +62,26 @@ func (h *HTTPChecker) contentsCheck(rsp *http.Response, reg *regexp.Regexp) Outc
 }
 
 func (h *HTTPChecker) SimpleHTTPCheck(url string) *CheckResult {
-	checkName := fmt.Sprintf("SimpleHTTPCheck: %s", url)
 	checkTime := time.Now()
 	outcome, duration := h.checkRequest(url, h.statusCheck)
-	return &CheckResult{checkTime, checkName, outcome, duration}
+	return &CheckResult{
+		Timestamp: checkTime,
+		Result:    outcome,
+		Duration:  duration,
+	}
 }
 
 func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *CheckResult {
-	checkName := fmt.Sprintf("RegexpHTTPCheck: %s", url)
 	checkTime := time.Now()
 	contentsCheckWrapper := func(rsp *http.Response) Outcome {
 		return h.contentsCheck(rsp, rex)
 	}
 	outcome, duration := h.checkRequest(url, contentsCheckWrapper)
-	return &CheckResult{checkTime, checkName, outcome, duration}
+	return &CheckResult{
+		Timestamp: checkTime,
+		Result:    outcome,
+		Duration:  duration,
+	}
 }
 
 func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) (func() *CheckResult, error) {
