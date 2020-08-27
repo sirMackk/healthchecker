@@ -32,6 +32,12 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/net"
+  packages = ["bpf","icmp","internal/iana","internal/socket","ipv4","ipv6"]
+  revision = "f4e77d36d62c17c2336347bb2670ddbd02d092b7"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
   revision = "0ad05ae3009d6413d3363aa09b350b2ec37daf09"
@@ -39,6 +45,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b8752dce614c03aa3e709a0d1e4dd855e0b6e643e9c8a438b6a58b2f366b05ac"
+  inputs-digest = "0f0da78a1e219b9d20f9e741d8f7997fa32096c7fa1470318ec342fa56d43e06"
   solver-name = "gps-cdcl"
   solver-version = 1
