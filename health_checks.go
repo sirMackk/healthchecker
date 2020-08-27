@@ -48,6 +48,10 @@ func (h *HealthCheck) Run() {
 	}
 }
 
+func (h *HealthCheck) String() string {
+	return fmt.Sprintf("(%s: %s)", h.Type, h.Name)
+}
+
 type HealthCheckConstructor func(map[string]string) (func() *CheckResult, error)
 type SinkConstructor func(map[string]string) (Emitter, error)
 
@@ -122,6 +126,7 @@ func (c *CheckRegistry) createSinks(sinkConfig []map[string]map[string]string) (
 func (c *CheckRegistry) StartRunning() {
 	//TODO: Refactor: Running the checks shouldn't belong in the registry.
 	log.Infof("Will start %d health checks", len(c.Checks))
+	log.Debugf("Health checks: %s", c.Checks)
 	c.running = true
 	var wg sync.WaitGroup
 	for i, _ := range c.Checks {
