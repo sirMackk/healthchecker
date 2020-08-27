@@ -1,12 +1,15 @@
 package healthchecker
 
 import (
+	//"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"testing"
 	"time"
+
+	influx_client "github.com/influxdata/influxdb/client/v2"
 )
 
 func TestConsoleSinkEmit(t *testing.T) {
@@ -42,7 +45,49 @@ func TestNewUDPInfluxSinkStartsCollector(t *testing.T) {
 	}
 }
 
-//TODO test emit using count and client interface:
-// https://github.com/influxdata/influxdb/blob/1.7/client/v2/client.go#L69
+type FakeClient struct {
+	WriteCalled int
+	CloseCalled int
+}
+
+func (fc *FakeClient) Close() error {
+	fc.CloseCalled += 1
+	return nil
+}
+
+func (fc *FakeClient) Write(bp influx_client.BatchPoints) error {
+	fc.WriteCalled += 1
+	return nil
+}
+
+func (fc *FakeClient) Ping(timeout time.Duration) (time.Duration, string, error) {
+	return 1 * time.Second, "", nil
+}
+
+func (fc *FakeClient) Query(q influx_client.Query) (*influx_client.Response, error) {
+	return nil, nil
+}
+
+func (fc *FakeClient) QueryAsChunk(q influx_client.Query) (*influx_client.ChunkedResponse, error) {
+	return nil, nil
+}
+
+func TestUDPInfluxSinkEmitOnCount(t *testing.T) {
+	sink, _ := NewUDPInfluxSink(map[string]string{
+		"addr":          "localhost:9999",
+		"flushInterval": "2",
+		"flushCount":    "1",
+	})
+	influxSink := sink.(*UDPInfluxSink)
+	influxSink.Client = &FakeClient{}
+
+	c := &CheckResult{time.Now(), Failure, time.Duration(1)}
+	fmt.Println(c)
+	sink.Emit("a testing check", "ExampleCheck", c)
+	time.Sleep(2 * time.Second) // sleep for FlushInterval
+	if influxSink.Client.(*FakeClient).WriteCalled < 1 {
+		t.Errorf("Client didnt write or close: %v", influxSink.Client)
+	}
+}
 
 //TODO test emit using flushInterval and client interface
