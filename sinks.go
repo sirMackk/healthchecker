@@ -7,10 +7,11 @@ import (
 	"time"
 
 	influx_client "github.com/influxdata/influxdb/client/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 type Emitter interface {
-	Emit(name, ctype string, c *CheckResult)
+	Emit(name, checkType string, c *CheckResult)
 }
 
 type ConsoleSink struct {
@@ -33,7 +34,7 @@ func NewConsoleSink(args map[string]string) (Emitter, error) {
 	return &ConsoleSink{TargetStream: os.Stdout}, nil
 }
 
-func (s *ConsoleSink) Emit(name, ctype string, c *CheckResult) {
+func (s *ConsoleSink) Emit(name, checkType string, c *CheckResult) {
 	fmt.Fprintf(s.TargetStream, "%s [%s]: %s %s\n", c.TimestampString(), name, c.Result, c.Duration.Round(time.Millisecond))
 }
 
@@ -85,12 +86,12 @@ func NewUDPInfluxSink(args map[string]string) (Emitter, error) {
 }
 
 func (s *UDPInfluxSink) StartCollector(flushInterval time.Duration, flushCount int) {
-	// check if running
+	log.Debug("Starting InfluxDB collector")
 	if !s.collectorRunning {
 		s.collectorRunning = true
 		go s.collectorRoutine(flushInterval, flushCount)
 	} else {
-		panic("Cannot start more than 1 collector goro for one UDPInfluxSink!")
+		log.Error("Cannot start more than 1 collector goro for one UDPInfluxSink!")
 	}
 }
 
@@ -111,25 +112,34 @@ func (s *UDPInfluxSink) collectorRoutine(flushInterval time.Duration, flushCount
 	for {
 		select {
 		case <-time.Tick(flushInterval * time.Second):
-			s.Client.Write(bp)
+			log.Debug("Reached flush interval, flushing batch points")
+			err := s.Client.Write(bp)
+			if err != nil {
+				log.Debugf("Error while writing to db: %s", err)
+			}
 			bp = s.newBatchPoints()
 		case point := <-s.pointBox:
+			log.Debug("Received data point")
 			bp.AddPoint(point)
 			if len(bp.Points()) >= flushCount {
-				s.Client.Write(bp)
+				log.Debug("Reached flush count, flushing batch points")
+				err := s.Client.Write(bp)
+				if err != nil {
+					log.Debugf("Error while writing to db: %s", err)
+				}
 				bp = s.newBatchPoints()
 			}
 		}
 	}
 }
 
-func (s *UDPInfluxSink) Emit(name, ctype string, c *CheckResult) {
+func (s *UDPInfluxSink) Emit(name, checkType string, c *CheckResult) {
 	tags := map[string]string{
 		"name": name,
-		"type": ctype,
+		"type": checkType,
 	}
 	fields := map[string]interface{}{
-		"result":   string(c.Result),
+		"result":   c.Result,
 		"duration": c.Duration,
 	}
 	pt, _ := influx_client.NewPoint("healthcheck", tags, fields, c.Timestamp)

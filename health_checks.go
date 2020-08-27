@@ -44,6 +44,7 @@ type HealthCheck struct {
 func (h *HealthCheck) Run() {
 	res := h.check()
 	for _, s := range h.sinks {
+		log.Debugf("Emitting %s to: %v", h.Name, s)
 		s.Emit(h.Name, h.Type, res)
 	}
 }
@@ -59,6 +60,7 @@ type CheckRegistry struct {
 	CheckConstructors map[string]HealthCheckConstructor
 	SinkConstructors  map[string]SinkConstructor
 	Checks            []*HealthCheck
+	Sinks             map[string]Emitter
 	running           bool
 }
 
@@ -68,6 +70,7 @@ func NewCheckRegistry() *CheckRegistry {
 	registry.CheckConstructors = make(map[string]HealthCheckConstructor)
 	registry.SinkConstructors = make(map[string]SinkConstructor)
 	registry.Checks = make([]*HealthCheck, 0)
+	registry.Sinks = make(map[string]Emitter)
 	registry.running = false
 	return &registry
 }
@@ -97,7 +100,7 @@ func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs m
 func (c *CheckRegistry) RegisterHealthChecks(conf *Config) {
 	for _, hc := range conf.HealthChecks {
 		log.Debugf("Creating sinks for %s", hc.Name)
-		sinks, err := c.createSinks(hc.Sinks)
+		sinks, err := c.setupSinks(hc.Sinks)
 		if err != nil {
 			log.Errorf("Could not register %s due to: %s", hc.Name, err)
 			continue
@@ -109,15 +112,39 @@ func (c *CheckRegistry) RegisterHealthChecks(conf *Config) {
 	}
 }
 
-func (c *CheckRegistry) createSinks(sinkConfig []map[string]map[string]string) ([]Emitter, error) {
+func (c *CheckRegistry) getOrCreateSink(sinkName string, sinkArgs map[string]string) (Emitter, error) {
+	sinkId, sinkIdExists := sinkArgs["id"]
+	if sinkIdExists {
+		delete(sinkArgs, "id")
+		if sink, ok := c.Sinks[sinkId]; ok {
+			return sink, nil
+		}
+	}
+
+	sinkConstructor, ok := c.SinkConstructors[sinkName]
+	if !ok {
+		return nil, fmt.Errorf("Unable to create sink '%s': unknown sink type", sinkName)
+	}
+
+	newSink, err := sinkConstructor(sinkArgs)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to create sink '%s' with args: %v", sinkName, sinkArgs)
+	}
+	if sinkIdExists {
+		c.Sinks[sinkId] = newSink
+	}
+	return newSink, nil
+}
+
+func (c *CheckRegistry) setupSinks(sinkConfigs []map[string]map[string]string) ([]Emitter, error) {
 	sinks := make([]Emitter, 0)
-	for _, sink := range sinkConfig {
-		for sinkName, sinkArgs := range sink {
-			newSink, err := c.SinkConstructors[sinkName](sinkArgs)
+	for _, sinkConfig := range sinkConfigs {
+		for sinkName, sinkArgs := range sinkConfig {
+			sink, err := c.getOrCreateSink(sinkName, sinkArgs)
 			if err != nil {
-				return sinks, fmt.Errorf("Unable to create sink '%s' with args: %v", sinkName, sinkArgs)
+				return nil, err
 			}
-			sinks = append(sinks, newSink)
+			sinks = append(sinks, sink)
 		}
 	}
 	return sinks, nil

@@ -27,13 +27,12 @@ func NewHTTPChecker(timeout time.Duration) *HTTPChecker {
 	return &checker
 }
 
-// TODO better func name
-func (h *HTTPChecker) checkRequest(url string, checkFn func(*http.Response) Outcome) (Outcome, time.Duration) {
+func (h *HTTPChecker) checkResponse(url string, checkFn func(*http.Response) Outcome) (Outcome, time.Duration) {
 	timeStart := time.Now()
 	resp, err := h.Client.Get(url)
 	timeElapsed := time.Since(timeStart)
 	if err != nil {
-		log.Debugf("checkRequest to %s failed: %v", url, err)
+		log.Debugf("checkResponse to %s failed: %v", url, err)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			return Failure, timeElapsed
 		}
@@ -63,7 +62,7 @@ func (h *HTTPChecker) contentsCheck(rsp *http.Response, reg *regexp.Regexp) Outc
 
 func (h *HTTPChecker) SimpleHTTPCheck(url string) *CheckResult {
 	checkTime := time.Now()
-	outcome, duration := h.checkRequest(url, h.statusCheck)
+	outcome, duration := h.checkResponse(url, h.statusCheck)
 	return &CheckResult{
 		Timestamp: checkTime,
 		Result:    outcome,
@@ -76,7 +75,7 @@ func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *CheckResu
 	contentsCheckWrapper := func(rsp *http.Response) Outcome {
 		return h.contentsCheck(rsp, rex)
 	}
-	outcome, duration := h.checkRequest(url, contentsCheckWrapper)
+	outcome, duration := h.checkResponse(url, contentsCheckWrapper)
 	return &CheckResult{
 		Timestamp: checkTime,
 		Result:    outcome,
@@ -97,16 +96,15 @@ func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) (func() *CheckR
 
 func (h *HTTPChecker) NewRegexpHTTPCheck(args map[string]string) (func() *CheckResult, error) {
 	// TODO abstract argument checking
-	var url, regexpStr string
+	var url, checkRegexp string
 	var ok bool
 	if url, ok = args["url"]; !ok {
 		return nil, fmt.Errorf("RegexpHTTPCheck missing 'url' parameter")
 	}
-	//TODO bad variable name
-	if regexpStr, ok = args["regexpStr"]; !ok {
-		return nil, fmt.Errorf("RegexpHTTPCheck missing 'regexpStr' parameter")
+	if checkRegexp, ok = args["checkRegexp"]; !ok {
+		return nil, fmt.Errorf("RegexpHTTPCheck missing 'checkRegexp' parameter")
 	}
-	regexpArg := regexp.MustCompile(regexpStr)
+	regexpArg := regexp.MustCompile(checkRegexp)
 	return func() *CheckResult {
 		return h.RegexpHTTPCheck(url, regexpArg)
 	}, nil
