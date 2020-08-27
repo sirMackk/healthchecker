@@ -122,22 +122,22 @@ func (c *CheckRegistry) StartRunning() {
 	log.Infof("Will start %d health checks", len(c.Checks))
 	c.running = true
 	var wg sync.WaitGroup
-	for _, check := range c.Checks {
+	for i, _ := range c.Checks {
 		wg.Add(1)
 		// TODO something to catch errors and restart goroutines with checks
-		go func() {
+		go func(chk *HealthCheck) {
 			defer wg.Done()
-			log.Infof("Running check: %s", check.Name)
-			check.Run()
-			for range time.Tick(check.Interval) {
+			log.Infof("Running check: %s", chk.Name)
+			chk.Run()
+			for range time.Tick(chk.Interval) {
 				if !c.running {
-					log.Infof("Stopping check: %s", check.Name)
+					log.Infof("Stopping check: %s", chk.Name)
 					return
 				}
-				log.Infof("Running check: %s", check.Name)
-				check.Run()
+				log.Infof("Running check: %s", chk.Name)
+				chk.Run()
 			}
-		}()
+		}(c.Checks[i])
 	}
 	wg.Wait()
 }
