@@ -1,11 +1,19 @@
 ---
 core:
   HTTPTimeout: '10'
+  ICMPV4Timeout: '5'
 health-checks:
-  - blogCheck:
+  - name: BlogCheck
     type: SimpleHTTPCheck
     args:
       url: http://mattscodecave.com
+    interval: 3
     sinks:
       - ConsoleSink:
-        - true
+          stdout: true
+          name: stdout
+      - InfluxSink:
+          name: udpInfluxSink
+          addr: 127.0.0.1:8089
+          flushInterval: 5
+          flushCount: 2

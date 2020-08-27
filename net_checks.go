@@ -2,8 +2,9 @@ package healthchecker
 
 import (
 	"fmt"
-	"os"
+	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"golang.org/x/net/icmp"
@@ -11,6 +12,15 @@ import (
 	"golang.org/x/net/ipv6"
 
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	icmpv4Proto = 1
+	recvBufSize = 256
+	sudoEnvVar  = "SUDO_COMMAND"
+	idMaxrange  = 32000
+	echoSeq     = 1
+	echoReqCode = 0
 )
 
 type ICMPPacketConn interface {
@@ -26,11 +36,12 @@ type ICMPPacketConn interface {
 }
 
 type ICMPChecker struct {
-	Conn ICMPPacketConn
+	Conn      ICMPPacketConn
+	checkerId int
 }
 
 func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
-	_, isSudo := os.LookupEnv("SUDO_COMMAND")
+	_, isSudo := os.LookupEnv(sudoEnvVar)
 	if !isSudo {
 		return nil, fmt.Errorf("If you want to use ICMPChecker, you must run as sudo")
 	}
@@ -40,7 +51,8 @@ func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
 	}
 	conn.SetDeadline(time.Now().Add(time.Second * time.Duration(timeout)))
 	checker := ICMPChecker{
-		Conn: conn,
+		Conn:      conn,
+		checkerId: rand.Intn(idMaxrange),
 	}
 	return &checker, nil
 }
@@ -48,10 +60,10 @@ func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
 func (i *ICMPChecker) sendICMPV4Echo(targetIP *net.IPAddr, ua []byte) (*icmp.Message, error) {
 	echoReq := icmp.Message{
 		Type: ipv4.ICMPTypeEcho,
-		Code: 0,
+		Code: echoReqCode,
 		Body: &icmp.Echo{
-			ID:   0,
-			Seq:  1,
+			ID:   i.checkerId,
+			Seq:  echoSeq,
 			Data: ua,
 		},
 	}
@@ -62,20 +74,20 @@ func (i *ICMPChecker) sendICMPV4Echo(targetIP *net.IPAddr, ua []byte) (*icmp.Mes
 	}
 	_, err = i.Conn.WriteTo(encodedReq, targetIP)
 	if err != nil {
-		log.Debugf("ICMP check failed, couldn't write to conn: %s", err)
+		log.Errorf("ICMP check failed, couldn't write to conn: %s", err)
 		return nil, err
 	}
 
-	buf := make([]byte, 256)
+	buf := make([]byte, recvBufSize)
 	bytesRead, _, err := i.Conn.ReadFrom(buf)
 	if err != nil {
-		log.Debugf("ICMP check failed, couldn't read from conn: %v", err)
+		log.Errorf("ICMP check failed, couldn't read from conn: %v", err)
 		return nil, err
 	}
 
-	resp, err := icmp.ParseMessage(1, buf[:bytesRead])
+	resp, err := icmp.ParseMessage(icmpv4Proto, buf[:bytesRead])
 	if err != nil {
-		log.Debugf("ICMP check failed, couldn't parse reply: %v - %v", err, buf[:bytesRead])
+		log.Errorf("ICMP check failed, couldn't parse reply: %v - %v", err, buf[:bytesRead])
 		return nil, err
 	}
 	return resp, nil
