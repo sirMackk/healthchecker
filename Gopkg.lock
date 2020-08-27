@@ -8,6 +8,17 @@
   version = "v2.2.2"
 
 [[projects]]
+  name = "github.com/influxdata/influxdb"
+  packages = ["client/v2","models","pkg/escape"]
+  revision = "2f49e00f7f3801a506304c3b6d8165b2f4039f3d"
+  version = "v1.7.5"
+
+[[projects]]
+  name = "github.com/influxdata/platform"
+  packages = ["models","pkg/escape"]
+  revision = "0f79e4ea3248354c789cba274542e0a8e55971db"
+
+[[projects]]
   name = "github.com/konsorten/go-windows-terminal-sequences"
   packages = ["."]
   revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
@@ -28,6 +39,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8cd56119c5cbe46a8e3ed499e39191c8e2df1ba3b100c03b94580be39766ae56"
+  inputs-digest = "b8752dce614c03aa3e709a0d1e4dd855e0b6e643e9c8a438b6a58b2f366b05ac"
   solver-name = "gps-cdcl"
   solver-version = 1

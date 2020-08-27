@@ -29,7 +29,6 @@ func (o Outcome) String() string {
 
 type CheckResult struct {
 	Timestamp time.Time
-	Name      string
 	Result    Outcome
 	Duration  time.Duration
 }
@@ -39,12 +38,13 @@ type HealthCheck struct {
 	sinks    []Sink
 	Interval time.Duration
 	Name     string
+	Type     string
 }
 
 func (h *HealthCheck) Run() {
 	res := h.check()
 	for _, s := range h.sinks {
-		s.Emit(res)
+		s.Emit(h.Name, h.Type, res)
 	}
 }
 
@@ -82,6 +82,7 @@ func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs m
 		sinks:    sinks,
 		Interval: time.Duration(interval) * time.Second,
 		Name:     checkName,
+		Type:     checkType,
 	}
 	c.Checks = append(c.Checks, &hc)
 	return &hc, nil
