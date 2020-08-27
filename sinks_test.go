@@ -84,10 +84,9 @@ func TestUDPInfluxSinkEmitOnCount(t *testing.T) {
 	c := &CheckResult{time.Now(), Failure, time.Duration(1)}
 	fmt.Println(c)
 	sink.Emit("a testing check", "ExampleCheck", c)
+	// TODO: create test that doesn't need sleeping
 	time.Sleep(2 * time.Second) // sleep for FlushInterval
 	if influxSink.Client.(*FakeClient).WriteCalled < 1 {
 		t.Errorf("Client didnt write or close: %v", influxSink.Client)
 	}
 }
-
-//TODO test emit using flushInterval and client interface
