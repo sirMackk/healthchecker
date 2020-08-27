@@ -36,34 +36,6 @@ func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
 	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
 }
 
-func registerHealthChecks(c *hchecker.Config, registry *hchecker.CheckRegistry) {
-	for _, hc := range c.HealthChecks {
-		log.Debugf("Creating sinks for %s", hc.Name)
-		sinks, err := createSinks(hc.Sinks, registry)
-		if err != nil {
-			log.Errorf("Could not register %s due to: %s", hc.Name, err)
-			continue
-		}
-		_, err = registry.NewCheck(hc.Name, hc.Type, hc.Args, hc.Interval, sinks)
-		if err != nil {
-			log.Errorf("Could not register %s due to: %s", hc.Name, err)
-		}
-	}
-}
-
-func createSinks(sinkConfig []map[string]map[string]string, registry *hchecker.CheckRegistry) ([]hchecker.Emitter, error) {
-	sinks := make([]hchecker.Emitter, 0)
-	for _, sink := range sinkConfig {
-		for sinkName, sinkArgs := range sink {
-			newSink, err := registry.SinkConstructors[sinkName](sinkArgs)
-			if err != nil {
-				return sinks, fmt.Errorf("Unable to create sink '%s' with args: %v", sinkName, sinkArgs)
-			}
-			sinks = append(sinks, newSink)
-		}
-	}
-	return sinks, nil
-}
 
 
 func main() {
@@ -92,12 +64,7 @@ func main() {
 		os.Exit(1)
 	}
 	registry := hchecker.NewCheckRegistry()
-
-	// register available health check modules
 	populateRegistry(config, registry)
-
-	// register health checks
-	registerHealthChecks(config, registry)
-
+	registry.RegisterHealthChecks(config)
 	registry.StartRunning()
 }

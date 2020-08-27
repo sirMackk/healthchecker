@@ -88,6 +88,35 @@ func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs m
 	return &hc, nil
 }
 
+func (c *CheckRegistry) RegisterHealthChecks(conf *Config) {
+	for _, hc := range conf.HealthChecks {
+		log.Debugf("Creating sinks for %s", hc.Name)
+		sinks, err := c.createSinks(hc.Sinks)
+		if err != nil {
+			log.Errorf("Could not register %s due to: %s", hc.Name, err)
+			continue
+		}
+		_, err = c.NewCheck(hc.Name, hc.Type, hc.Args, hc.Interval, sinks)
+		if err != nil {
+			log.Errorf("Could not register %s due to: %s", hc.Name, err)
+		}
+	}
+}
+
+func (c *CheckRegistry) createSinks(sinkConfig []map[string]map[string]string) ([]Emitter, error) {
+	sinks := make([]Emitter, 0)
+	for _, sink := range sinkConfig {
+		for sinkName, sinkArgs := range sink {
+			newSink, err := c.SinkConstructors[sinkName](sinkArgs)
+			if err != nil {
+				return sinks, fmt.Errorf("Unable to create sink '%s' with args: %v", sinkName, sinkArgs)
+			}
+			sinks = append(sinks, newSink)
+		}
+	}
+	return sinks, nil
+}
+
 func (c *CheckRegistry) StartRunning() {
 	//TODO: Refactor: Running the checks shouldn't belong in the registry.
 	log.Infof("Will start %d health checks", len(c.Checks))
