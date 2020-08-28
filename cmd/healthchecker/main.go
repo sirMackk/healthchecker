@@ -13,7 +13,7 @@ import (
 	hchecker "github.com/sirmackk/healthchecker"
 )
 
-var version string = "0.0.2"
+var version string = "0.0.3"
 
 func setupConfig(cfgFilePath string) (*hchecker.Config, error) {
 	contents, err := ioutil.ReadFile(cfgFilePath)
