@@ -8,15 +8,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Outcome int
+type ResultCode int
 
 const (
-	Success Outcome = 0
-	Failure Outcome = 1
-	Error   Outcome = 2
+	Success ResultCode = 0
+	Failure ResultCode = 1
+	Error   ResultCode = 2
 )
 
-func (o Outcome) String() string {
+func (o ResultCode) String() string {
 	switch o {
 	case 0:
 		return "Success"
@@ -27,24 +27,29 @@ func (o Outcome) String() string {
 	}
 }
 
-type CheckResult struct {
+type Result struct {
 	Timestamp time.Time
-	Result    Outcome
+	Result    ResultCode
 	Duration  time.Duration
 }
 
+func (c *Result) TimestampString() string {
+	return fmt.Sprintf(c.Timestamp.Format("2006-01-02 15:04:05.999999"))
+}
+
 type HealthCheck struct {
-	check    func() *CheckResult
+	fn       func() *Result
 	sinks    []Emitter
 	Interval time.Duration
 	Name     string
 	Type     string
 }
 
+// TODO get rid of duplicate names eg. CheckResult -> Result
 func (h *HealthCheck) Run() {
-	res := h.check()
+	res := h.fn()
 	for _, s := range h.sinks {
-		log.Debugf("Emitting %s to: %v", h.Name, s)
+		log.Debugf("Emitting %s result to %v", h.Name, s.Name())
 		s.Emit(h.Name, h.Type, res)
 	}
 }
@@ -53,10 +58,10 @@ func (h *HealthCheck) String() string {
 	return fmt.Sprintf("(%s: %s)", h.Type, h.Name)
 }
 
-type HealthCheckConstructor func(map[string]string) (func() *CheckResult, error)
+type HealthCheckConstructor func(map[string]string) (func() *Result, error)
 type SinkConstructor func(map[string]string) (Emitter, error)
 
-type CheckRegistry struct {
+type Registry struct {
 	CheckConstructors map[string]HealthCheckConstructor
 	SinkConstructors  map[string]SinkConstructor
 	Checks            []*HealthCheck
@@ -64,9 +69,9 @@ type CheckRegistry struct {
 	running           bool
 }
 
-func NewCheckRegistry() *CheckRegistry {
+func NewRegistry() *Registry {
 	log.Debug("Creating new CheckRegistry")
-	registry := CheckRegistry{}
+	registry := Registry{}
 	registry.CheckConstructors = make(map[string]HealthCheckConstructor)
 	registry.SinkConstructors = make(map[string]SinkConstructor)
 	registry.Checks = make([]*HealthCheck, 0)
@@ -75,19 +80,19 @@ func NewCheckRegistry() *CheckRegistry {
 	return &registry
 }
 
-func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Emitter) (*HealthCheck, error) {
+func (c *Registry) AddCheck(checkName string, checkType string, checkArgs map[string]string, interval int, sinks []Emitter) (*HealthCheck, error) {
 	log.Infof("Creating new health check: %s (%s) (%v)", checkType, checkName, checkArgs)
 	checkConstructor, ok := c.CheckConstructors[checkType]
 	if !ok {
 		return nil, fmt.Errorf("Unable to create check: '%s:%s' because it's not registered", checkType, checkName)
 	}
-	newCheck, err := checkConstructor(checkArgs)
+	checkFn, err := checkConstructor(checkArgs)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create check '%s: %v' because: %v", checkType, checkArgs, err)
 	}
 
 	hc := HealthCheck{
-		check:    newCheck,
+		fn:       checkFn,
 		sinks:    sinks,
 		Interval: time.Duration(interval) * time.Second,
 		Name:     checkName,
@@ -97,22 +102,22 @@ func (c *CheckRegistry) NewCheck(checkName string, checkType string, checkArgs m
 	return &hc, nil
 }
 
-func (c *CheckRegistry) RegisterHealthChecks(conf *Config) {
+func (c *Registry) RegisterHealthChecks(conf *Config) {
 	for _, hc := range conf.HealthChecks {
 		log.Debugf("Creating sinks for %s", hc.Name)
-		sinks, err := c.setupSinks(hc.Sinks)
+		sinks, err := c.setupSinks(hc.Name, hc.Sinks)
 		if err != nil {
 			log.Errorf("Could not register %s due to: %s", hc.Name, err)
 			continue
 		}
-		_, err = c.NewCheck(hc.Name, hc.Type, hc.Args, hc.Interval, sinks)
+		_, err = c.AddCheck(hc.Name, hc.Type, hc.Args, hc.Interval, sinks)
 		if err != nil {
 			log.Errorf("Could not register %s due to: %s", hc.Name, err)
 		}
 	}
 }
 
-func (c *CheckRegistry) getOrCreateSink(sinkName string, sinkArgs map[string]string) (Emitter, error) {
+func (c *Registry) getOrCreateSink(checkName, sinkName string, sinkArgs map[string]string) (Emitter, error) {
 	sinkId, sinkIdExists := sinkArgs["id"]
 	if sinkIdExists {
 		delete(sinkArgs, "id")
@@ -128,7 +133,7 @@ func (c *CheckRegistry) getOrCreateSink(sinkName string, sinkArgs map[string]str
 
 	newSink, err := sinkConstructor(sinkArgs)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create sink '%s' with args: %v", sinkName, sinkArgs)
+		return nil, fmt.Errorf("Unable to create sink '%s' with args: %v because: %s", sinkName, sinkArgs, err)
 	}
 	if sinkIdExists {
 		c.Sinks[sinkId] = newSink
@@ -136,11 +141,11 @@ func (c *CheckRegistry) getOrCreateSink(sinkName string, sinkArgs map[string]str
 	return newSink, nil
 }
 
-func (c *CheckRegistry) setupSinks(sinkConfigs []map[string]map[string]string) ([]Emitter, error) {
+func (c *Registry) setupSinks(checkName string, sinkConfigs []map[string]map[string]string) ([]Emitter, error) {
 	sinks := make([]Emitter, 0)
 	for _, sinkConfig := range sinkConfigs {
 		for sinkName, sinkArgs := range sinkConfig {
-			sink, err := c.getOrCreateSink(sinkName, sinkArgs)
+			sink, err := c.getOrCreateSink(checkName, sinkName, sinkArgs)
 			if err != nil {
 				return nil, err
 			}
@@ -150,7 +155,7 @@ func (c *CheckRegistry) setupSinks(sinkConfigs []map[string]map[string]string) (
 	return sinks, nil
 }
 
-func (c *CheckRegistry) StartRunning() {
+func (c *Registry) StartRunning() {
 	log.Infof("Starting: %d health checks", len(c.Checks))
 	log.Debugf("Health checks: %s", c.Checks)
 	c.running = true
@@ -174,11 +179,7 @@ func (c *CheckRegistry) StartRunning() {
 	wg.Wait()
 }
 
-func (c *CheckRegistry) StopRunning() {
+func (c *Registry) StopRunning() {
 	log.Info("Stopping health checks")
 	c.running = false
-}
-
-func (c *CheckResult) TimestampString() string {
-	return fmt.Sprintf(c.Timestamp.Format("2006-01-02 15:04:05.999999"))
 }

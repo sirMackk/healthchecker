@@ -3,6 +3,7 @@ package healthchecker
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -11,31 +12,42 @@ import (
 )
 
 type Emitter interface {
-	Emit(name, checkType string, c *CheckResult)
+	Emit(name, checkType string, c *Result)
+	Name() string
 }
 
-type ConsoleSink struct {
-	TargetStream *os.File
+type FileSink struct {
+	TargetFile *os.File
 }
 
-func NewConsoleSink(args map[string]string) (Emitter, error) {
-	useStdout, ok := args["useStdout"]
+func NewFileSink(args map[string]string) (Emitter, error) {
+	errPrefix := "Error creating FileSink - "
+	path, ok := args["path"]
 	if !ok {
-		return nil, fmt.Errorf("Error creating ConsoleSink - useStdout option missing")
+		return nil, fmt.Errorf("%s path parameter missing", errPrefix)
 	}
-	choice, err := strconv.ParseBool(useStdout)
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing ConsoleSink 'useStdout' option")
+	if !filepath.IsAbs(path) {
+		return nil, fmt.Errorf("%s path must be absolute, got: %s", errPrefix, path)
 	}
 
-	if !choice {
-		return &ConsoleSink{TargetStream: os.Stderr}, nil
+	pathDir := filepath.Dir(path)
+	if _, err := os.Stat(pathDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("%s target directory does not exist: %s", errPrefix, pathDir)
 	}
-	return &ConsoleSink{TargetStream: os.Stdout}, nil
+
+	targetFile, err := os.OpenFile(path, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
+	if err != nil {
+		return nil, fmt.Errorf("%s cannot open file: %s", errPrefix, pathDir)
+	}
+	return &FileSink{TargetFile: targetFile}, nil
 }
 
-func (s *ConsoleSink) Emit(name, checkType string, c *CheckResult) {
-	fmt.Fprintf(s.TargetStream, "%s [%s]: %s %s\n", c.TimestampString(), name, c.Result, c.Duration.Round(time.Millisecond))
+func (f *FileSink) Emit(name, checkType string, c *Result) {
+	fmt.Fprintf(f.TargetFile, "%s [%s]: %s %s\n", c.TimestampString(), name, c.Result, c.Duration.Round(time.Millisecond))
+}
+
+func (f *FileSink) Name() string {
+	return "FileSink"
 }
 
 type UDPInfluxSink struct {
@@ -133,7 +145,7 @@ func (s *UDPInfluxSink) collectorRoutine(flushInterval time.Duration, flushCount
 	}
 }
 
-func (s *UDPInfluxSink) Emit(name, checkType string, c *CheckResult) {
+func (s *UDPInfluxSink) Emit(name, checkType string, c *Result) {
 	tags := map[string]string{
 		"name": name,
 		"type": checkType,
@@ -144,4 +156,8 @@ func (s *UDPInfluxSink) Emit(name, checkType string, c *CheckResult) {
 	}
 	pt, _ := influx_client.NewPoint("healthcheck", tags, fields, c.Timestamp)
 	s.pointBox <- pt
+}
+
+func (s *UDPInfluxSink) Name() string {
+	return "UDPInfluxSink"
 }

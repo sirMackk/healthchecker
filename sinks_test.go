@@ -12,20 +12,47 @@ import (
 	influx_client "github.com/influxdata/influxdb/client/v2"
 )
 
-func TestConsoleSinkEmit(t *testing.T) {
-	consoleSink, _ := NewConsoleSink(map[string]string{"useStdout": "true"})
-	cs := consoleSink.(*ConsoleSink)
+func TestFileSinkEmit(t *testing.T) {
+	fileSink, _ := NewFileSink(map[string]string{"path": "/tmp/someFile"})
+	fs := fileSink.(*FileSink)
 	r, w, _ := os.Pipe()
-	cs.TargetStream = w
-	c := CheckResult{time.Now(), Failure, time.Duration(1)}
-	cs.Emit("testCheck", "TestCheck", &c)
+	fs.TargetFile = w
+	c := Result{time.Now(), Failure, time.Duration(1)}
+	fs.Emit("testCheck", "TestCheck", &c)
 	w.Close()
 
 	msg, _ := ioutil.ReadAll(r)
 	matcher := `\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d+ \[testCheck\]: Failure [0-9.s]+`
+
 	if match, _ := regexp.Match(matcher, msg); !match {
 		fmt.Println(string(msg))
 		t.FailNow()
+	}
+}
+
+func TestNewFileSink(t *testing.T) {
+	newSinkTests := []struct {
+		name    string
+		args    map[string]string
+		succeed bool
+	}{
+		{"no path", map[string]string{"otherParam": "arg"}, false},
+		{"relative path", map[string]string{"path": "tmp/testfile"}, false},
+		{"path dont exist", map[string]string{"path": "/some_improbablePath_whichCantExist/file1"}, false},
+		{"inaccessible path", map[string]string{"path": "/root/afile"}, false},
+		{"alright path", map[string]string{"path": "/tmp/testfile1"}, true},
+	}
+
+	for _, tt := range newSinkTests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewFileSink(tt.args)
+			if !tt.succeed && err == nil {
+				t.Errorf("Got %#v, expected to fail but succeeded", tt.args)
+			}
+			if tt.succeed && err != nil {
+				t.Errorf("Got %#v, expected to succeed but failed", tt.args)
+			}
+		})
 	}
 }
 
@@ -81,7 +108,7 @@ func TestUDPInfluxSinkEmitOnCount(t *testing.T) {
 	influxSink := sink.(*UDPInfluxSink)
 	influxSink.Client = &FakeClient{}
 
-	c := &CheckResult{time.Now(), Failure, time.Duration(1)}
+	c := &Result{time.Now(), Failure, time.Duration(1)}
 	fmt.Println(c)
 	sink.Emit("a testing check", "ExampleCheck", c)
 	// TODO: create test that doesn't need sleeping
