@@ -112,20 +112,20 @@ func (s *UDPInfluxSink) collectorRoutine(flushInterval time.Duration, flushCount
 	for {
 		select {
 		case <-time.Tick(flushInterval * time.Second):
-			log.Debug("Reached flush interval, flushing batch points")
+			log.Debug("InfluxSink reached flush interval - flushing batch points")
 			err := s.Client.Write(bp)
 			if err != nil {
-				log.Debugf("Error while writing to db: %s", err)
+				log.Errorf("InfluxSink encountered problem while writing to db: %s", err)
 			}
 			bp = s.newBatchPoints()
 		case point := <-s.pointBox:
 			log.Debug("Received data point")
 			bp.AddPoint(point)
 			if len(bp.Points()) >= flushCount {
-				log.Debug("Reached flush count, flushing batch points")
+				log.Debug("InfluxSink reached flush count - flushing batch points")
 				err := s.Client.Write(bp)
 				if err != nil {
-					log.Debugf("Error while writing to db: %s", err)
+					log.Errorf("InfluxSink encountered problem while writing to db: %s", err)
 				}
 				bp = s.newBatchPoints()
 			}

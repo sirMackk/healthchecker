@@ -51,7 +51,7 @@ func TestStartRunning(t *testing.T) {
 func TestRegisterHealthChecks(t *testing.T) {
 	config := &Config{
 		Core: map[string]string{},
-		HealthChecks: []HealthChecksConfig {
+		HealthChecks: []HealthChecksConfig{
 			{
 				Name: "SomeCheck",
 				Type: "testing",
@@ -110,7 +110,7 @@ func TestRegisterHealthChecks(t *testing.T) {
 func TestRegisterHealthChecksWithSameSink(t *testing.T) {
 	config := &Config{
 		Core: map[string]string{},
-		HealthChecks: []HealthChecksConfig {
+		HealthChecks: []HealthChecksConfig{
 			{
 				Name: "SomeCheck",
 				Type: "testing",
