@@ -62,7 +62,7 @@ func TestRegexpHTTPCheckPass(t *testing.T) {
 
 	checker := NewHTTPChecker(1 * time.Second)
 	checkerFunc, err := checker.NewRegexpHTTPCheck(map[string]string{
-		"url":       ts.URL,
+		"url":         ts.URL,
 		"checkRegexp": "He[a-z]l(o)?",
 	})
 	if err != nil {
@@ -84,7 +84,7 @@ func TestRegexpHTTPCheckFailStatus(t *testing.T) {
 
 	checker := NewHTTPChecker(1 * time.Second)
 	checkerFunc, err := checker.NewRegexpHTTPCheck(map[string]string{
-		"url":       ts.URL,
+		"url":         ts.URL,
 		"checkRegexp": "He[a-z]l(o)?",
 	})
 	if err != nil {
@@ -105,7 +105,7 @@ func TestRegexpHTTPCheckFailMatch(t *testing.T) {
 
 	checker := NewHTTPChecker(1 * time.Second)
 	checkerFunc, err := checker.NewRegexpHTTPCheck(map[string]string{
-		"url":       ts.URL,
+		"url":         ts.URL,
 		"checkRegexp": "He[a-z]l(o)?",
 	})
 	if err != nil {

@@ -151,14 +151,12 @@ func (c *CheckRegistry) setupSinks(sinkConfigs []map[string]map[string]string) (
 }
 
 func (c *CheckRegistry) StartRunning() {
-	//TODO: Refactor: Running the checks shouldn't belong in the registry.
-	log.Infof("Will start %d health checks", len(c.Checks))
+	log.Infof("Starting: %d health checks", len(c.Checks))
 	log.Debugf("Health checks: %s", c.Checks)
 	c.running = true
 	var wg sync.WaitGroup
 	for i, _ := range c.Checks {
 		wg.Add(1)
-		// TODO something to catch errors and restart goroutines with checks
 		go func(chk *HealthCheck) {
 			defer wg.Done()
 			log.Infof("Running check: %s", chk.Name)
