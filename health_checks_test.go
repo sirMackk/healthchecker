@@ -6,39 +6,39 @@ import (
 	"time"
 )
 
-func testingCheckConstructor(_ map[string]string) (func() *CheckResult, error) {
-	return func() *CheckResult {
-		return &CheckResult{}
+func testingCheckConstructor(_ map[string]string) (func() *Result, error) {
+	return func() *Result {
+		return &Result{}
 	}, nil
 }
 
 func TestNewCheckCorrect(t *testing.T) {
-	registry := NewCheckRegistry()
+	registry := NewRegistry()
 	registry.CheckConstructors["testing"] = testingCheckConstructor
 
-	registry.NewCheck("some check", "testing", nil, 0, nil)
+	registry.AddCheck("some check", "testing", nil, 0, nil)
 }
 
 func TestNewCheckFail(t *testing.T) {
-	registry := NewCheckRegistry()
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *CheckResult, error) {
+	registry := NewRegistry()
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
 		return nil, errors.New("Wat")
 	}
 
-	registry.NewCheck("some check", "testing", nil, 0, nil)
+	registry.AddCheck("some check", "testing", nil, 0, nil)
 }
 
 func TestStartRunning(t *testing.T) {
-	registry := NewCheckRegistry()
+	registry := NewRegistry()
 	var ran = false
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *CheckResult, error) {
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
 		ran = true
-		return func() *CheckResult { return nil }, nil
+		return func() *Result { return nil }, nil
 	}
 
 	sinks := make([]Emitter, 0)
-	registry.NewCheck("some check", "testing", nil, 1, sinks)
-	registry.NewCheck("some check", "testing", nil, 1, sinks)
+	registry.AddCheck("some check", "testing", nil, 1, sinks)
+	registry.AddCheck("some check", "testing", nil, 1, sinks)
 
 	go registry.StartRunning()
 	time.Sleep(1100 * time.Millisecond)
@@ -58,9 +58,9 @@ func TestRegisterHealthChecks(t *testing.T) {
 				Args: map[string]string{"url": "http://example.com"},
 				Sinks: []map[string]map[string]string{
 					{
-						"ConsoleSink": map[string]string{
-							"id":        "sink1",
-							"useStdout": "true"},
+						"FileSink": map[string]string{
+							"id":   "sink1",
+							"path": "/tmp/testfile"},
 					},
 				},
 				Interval: 5,
@@ -71,9 +71,9 @@ func TestRegisterHealthChecks(t *testing.T) {
 				Args: map[string]string{"url": "http://example.com"},
 				Sinks: []map[string]map[string]string{
 					{
-						"ConsoleSink": map[string]string{
-							"id":        "sink2",
-							"useStdout": "true"},
+						"FileSink": map[string]string{
+							"id":   "sink2",
+							"path": "/tmp/testfile2"},
 					},
 				},
 				Interval: 5,
@@ -81,13 +81,13 @@ func TestRegisterHealthChecks(t *testing.T) {
 		},
 	}
 
-	registry := NewCheckRegistry()
+	registry := NewRegistry()
 	var ran = false
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *CheckResult, error) {
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
 		ran = true
-		return func() *CheckResult { return nil }, nil
+		return func() *Result { return nil }, nil
 	}
-	registry.SinkConstructors["ConsoleSink"] = NewConsoleSink
+	registry.SinkConstructors["FileSink"] = NewFileSink
 	registry.RegisterHealthChecks(config)
 
 	if !ran {
@@ -117,9 +117,9 @@ func TestRegisterHealthChecksWithSameSink(t *testing.T) {
 				Args: map[string]string{"url": "http://example.com"},
 				Sinks: []map[string]map[string]string{
 					{
-						"ConsoleSink": map[string]string{
-							"id":        "sink1",
-							"useStdout": "true"},
+						"FileSink": map[string]string{
+							"id":   "sink1",
+							"path": "/tmp/testfile2"},
 					},
 				},
 				Interval: 5,
@@ -130,9 +130,9 @@ func TestRegisterHealthChecksWithSameSink(t *testing.T) {
 				Args: map[string]string{"url": "http://example.com"},
 				Sinks: []map[string]map[string]string{
 					{
-						"ConsoleSink": map[string]string{
-							"id":        "sink1",
-							"useStdout": "true"},
+						"FileSink": map[string]string{
+							"id":   "sink1",
+							"path": "/tmp/testfile1"},
 					},
 				},
 				Interval: 5,
@@ -140,11 +140,11 @@ func TestRegisterHealthChecksWithSameSink(t *testing.T) {
 		},
 	}
 
-	registry := NewCheckRegistry()
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *CheckResult, error) {
-		return func() *CheckResult { return nil }, nil
+	registry := NewRegistry()
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
+		return func() *Result { return nil }, nil
 	}
-	registry.SinkConstructors["ConsoleSink"] = NewConsoleSink
+	registry.SinkConstructors["FileSink"] = NewFileSink
 	registry.RegisterHealthChecks(config)
 
 	if nChecks := len(registry.Checks); nChecks != 2 {

@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"time"
 
@@ -27,7 +27,7 @@ func setupConfig(cfgFilePath string) (*hchecker.Config, error) {
 	return config, nil
 }
 
-func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
+func populateRegistry(c *hchecker.Config, registry *hchecker.Registry) {
 	httpTimeout, _ := strconv.Atoi(c.Core["HTTPTimeout"])
 	icmpTimeout, _ := strconv.Atoi(c.Core["ICMPTimeout"])
 	httpChecker := hchecker.NewHTTPChecker(time.Duration(httpTimeout) * time.Second)
@@ -41,11 +41,9 @@ func populateRegistry(c *hchecker.Config, registry *hchecker.CheckRegistry) {
 		log.Errorf("Error initializing ICMPChecker: %s", err)
 	}
 
-	registry.SinkConstructors["ConsoleSink"] = hchecker.NewConsoleSink
-	registry.SinkConstructors["InfluxSink"] = hchecker.NewUDPInfluxSink
+	registry.SinkConstructors["FileSink"] = hchecker.NewFileSink
+	registry.SinkConstructors["UDPInfluxSink"] = hchecker.NewUDPInfluxSink
 }
-
-
 
 func main() {
 	var cfgFilePath = flag.String("cfgFilePath", "config.yaml", "Absolute path to yaml config file")
@@ -72,7 +70,7 @@ func main() {
 		log.Error(err)
 		os.Exit(1)
 	}
-	registry := hchecker.NewCheckRegistry()
+	registry := hchecker.NewRegistry()
 	populateRegistry(config, registry)
 	registry.RegisterHealthChecks(config)
 	registry.StartRunning()

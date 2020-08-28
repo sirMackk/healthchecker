@@ -93,25 +93,25 @@ func (i *ICMPChecker) sendICMPV4Echo(targetIP *net.IPAddr, ua []byte) (*icmp.Mes
 	return resp, nil
 }
 
-func (i *ICMPChecker) ICMPV4Check(targetIP *net.IPAddr) *CheckResult {
+func (i *ICMPChecker) ICMPV4Check(targetIP *net.IPAddr) *Result {
 	timeStart := time.Now()
 	resp, err := i.sendICMPV4Echo(targetIP, []byte("sirmackk/healthchecker"))
 	if err != nil || resp.Type != ipv4.ICMPTypeEchoReply {
-		return &CheckResult{
+		return &Result{
 			Timestamp: timeStart,
 			Result:    Failure,
 			Duration:  time.Since(timeStart),
 		}
 	}
 
-	return &CheckResult{
+	return &Result{
 		Timestamp: timeStart,
 		Result:    Success,
 		Duration:  time.Since(timeStart),
 	}
 }
 
-func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() *CheckResult, error) {
+func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() *Result, error) {
 	IP, ok := args["targetIP"]
 	if !ok {
 		return nil, fmt.Errorf("ICMPV4Check missing 'targetIP' parameter")
@@ -120,7 +120,7 @@ func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() *CheckResul
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse %s into ipv4 address: %s", IP, err)
 	}
-	return func() *CheckResult {
+	return func() *Result {
 		return i.ICMPV4Check(targetIP)
 	}, nil
 }

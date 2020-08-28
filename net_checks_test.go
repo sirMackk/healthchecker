@@ -48,7 +48,7 @@ func NewFakePacketConn() ICMPPacketConn {
 
 func TestICMPV4Check(t *testing.T) {
 	OutputMsgs := []struct {
-		result Outcome
+		result ResultCode
 		outbuf []byte
 	}{
 		{Success, []byte{
