@@ -152,7 +152,7 @@ func (s *UDPInfluxSink) Emit(name, checkType string, c *Result) {
 	}
 	fields := map[string]interface{}{
 		"result":   c.Result,
-		"duration": c.Duration,
+		"duration": int64(c.Duration / time.Millisecond),
 	}
 	pt, _ := influx_client.NewPoint("healthcheck", tags, fields, c.Timestamp)
 	s.pointBox <- pt
