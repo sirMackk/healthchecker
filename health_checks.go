@@ -49,7 +49,7 @@ type HealthCheck struct {
 func (h *HealthCheck) Run() {
 	res := h.fn()
 	for _, s := range h.sinks {
-		log.Debugf("Emitting %s result to %v", h.Name, s.Name())
+		log.Debugf("Emitting %s result (%s) to %v", h.Name, res.Result, s.Name())
 		s.Emit(h.Name, h.Type, res)
 	}
 }
@@ -174,6 +174,7 @@ func (c *Registry) StartRunning() {
 				log.Infof("Running check: %s", chk.Name)
 				chk.Run()
 			}
+			log.Errorf("Stopping check loop for: %s", chk.Name)
 		}(c.Checks[i])
 	}
 	wg.Wait()
