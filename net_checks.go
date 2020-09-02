@@ -38,6 +38,7 @@ type ICMPPacketConn interface {
 type ICMPChecker struct {
 	Conn      ICMPPacketConn
 	checkerId int
+	timeout   time.Duration
 }
 
 func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
@@ -49,10 +50,10 @@ func NewICMPChecker(timeout time.Duration) (*ICMPChecker, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn.SetDeadline(time.Now().Add(time.Second * time.Duration(timeout)))
 	checker := ICMPChecker{
 		Conn:      conn,
 		checkerId: rand.Intn(idMaxrange),
+		timeout:   timeout,
 	}
 	return &checker, nil
 }
@@ -94,9 +95,15 @@ func (i *ICMPChecker) sendICMPV4Echo(targetIP *net.IPAddr, ua []byte) (*icmp.Mes
 }
 
 func (i *ICMPChecker) ICMPV4Check(targetIP *net.IPAddr) *Result {
+	i.Conn.SetDeadline(time.Now().Add(i.timeout))
 	timeStart := time.Now()
+	log.Debugf("Running ICMP4 on target: %v", targetIP)
 	resp, err := i.sendICMPV4Echo(targetIP, []byte("sirmackk/healthchecker"))
 	if err != nil || resp.Type != ipv4.ICMPTypeEchoReply {
+		log.Debugf("ICMP4 failed on either err (%v)", err)
+		if resp != nil {
+			log.Debugf("bad resp type: %v", resp.Type)
+		}
 		return &Result{
 			Timestamp: timeStart,
 			Result:    Failure,
