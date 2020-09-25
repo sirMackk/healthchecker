@@ -68,7 +68,7 @@ func TestICMPV4Check(t *testing.T) {
 			}
 
 			checkFunc, _ := checker.NewICMPV4Check(map[string]string{"targetIP": "localhost"})
-			res := checkFunc()
+			res := <-checkFunc()
 
 			if res.Result != tt.result {
 				t.Errorf(

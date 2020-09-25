@@ -12,7 +12,7 @@ import (
 )
 
 type Emitter interface {
-	Emit(name, checkType string, c *Result)
+	Emit(name, checkType string, c *Result) chan struct{}
 	Name() string
 }
 
@@ -42,8 +42,11 @@ func NewFileSink(args map[string]string) (Emitter, error) {
 	return &FileSink{TargetFile: targetFile}, nil
 }
 
-func (f *FileSink) Emit(name, checkType string, c *Result) {
+func (f *FileSink) Emit(name, checkType string, c *Result) chan struct{} {
+	ret := make(chan struct{})
+	defer close(ret)
 	fmt.Fprintf(f.TargetFile, "%s [%s]: %s %s\n", c.TimestampString(), name, c.Result, c.Duration.Round(time.Millisecond))
+	return ret
 }
 
 func (f *FileSink) Name() string {
@@ -145,7 +148,9 @@ func (s *UDPInfluxSink) collectorRoutine(flushInterval time.Duration, flushCount
 	}
 }
 
-func (s *UDPInfluxSink) Emit(name, checkType string, c *Result) {
+func (s *UDPInfluxSink) Emit(name, checkType string, c *Result) chan struct{} {
+	ret := make(chan struct{})
+	defer close(ret)
 	tags := map[string]string{
 		"name": name,
 		"type": checkType,
@@ -156,6 +161,7 @@ func (s *UDPInfluxSink) Emit(name, checkType string, c *Result) {
 	}
 	pt, _ := influx_client.NewPoint("healthcheck", tags, fields, c.Timestamp)
 	s.pointBox <- pt
+	return ret
 }
 
 func (s *UDPInfluxSink) Name() string {

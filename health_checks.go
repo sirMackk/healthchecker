@@ -1,6 +1,7 @@
 package healthchecker
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -38,7 +39,7 @@ func (c *Result) TimestampString() string {
 }
 
 type HealthCheck struct {
-	fn       func() *Result
+	fn       func() chan *Result
 	sinks    []Emitter
 	Interval time.Duration
 	Name     string
@@ -46,11 +47,27 @@ type HealthCheck struct {
 }
 
 // TODO get rid of duplicate names eg. CheckResult -> Result
-func (h *HealthCheck) Run() {
-	res := h.fn()
-	for _, s := range h.sinks {
-		log.Debugf("Emitting %s result (%s) to %v", h.Name, res.Result, s.Name())
-		s.Emit(h.Name, h.Type, res)
+func (h *HealthCheck) Run(ctx context.Context) {
+
+	select {
+	case res := <-h.fn():
+		for _, s := range h.sinks {
+			log.Debugf("Emitting %s result (%s) to %v", h.Name, res.Result, s.Name())
+			go func(s Emitter) {
+				select {
+				case <-s.Emit(h.Name, h.Type, res):
+				case <-ctx.Done():
+					if err := ctx.Err(); err != nil {
+						log.Errorf("Error emitting result from %s to sink %s: %s", h.Name, s.Name(), err)
+					}
+				}
+			}(s)
+
+		}
+	case <-ctx.Done():
+		if err := ctx.Err(); err != nil {
+			log.Errorf("Error running %s: %s", h.Name, err)
+		}
 	}
 }
 
@@ -58,7 +75,7 @@ func (h *HealthCheck) String() string {
 	return fmt.Sprintf("(%s: %s)", h.Type, h.Name)
 }
 
-type HealthCheckConstructor func(map[string]string) (func() *Result, error)
+type HealthCheckConstructor func(map[string]string) (func() chan *Result, error)
 type SinkConstructor func(map[string]string) (Emitter, error)
 
 type Registry struct {
@@ -165,14 +182,18 @@ func (c *Registry) StartRunning() {
 		go func(chk *HealthCheck) {
 			defer wg.Done()
 			log.Infof("Running check: %s", chk.Name)
-			chk.Run()
+			ctx, cancel := context.WithTimeout(context.Background(), chk.Interval)
+			defer cancel()
+			chk.Run(ctx)
 			for range time.Tick(chk.Interval) {
 				if !c.running {
 					log.Infof("Stopping check: %s", chk.Name)
 					return
 				}
 				log.Infof("Running check: %s", chk.Name)
-				chk.Run()
+				ctx, cancel := context.WithTimeout(context.Background(), chk.Interval)
+				chk.Run(ctx)
+				cancel()
 			}
 			log.Errorf("Stopping check loop for: %s", chk.Name)
 		}(c.Checks[i])

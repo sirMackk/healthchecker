@@ -84,18 +84,21 @@ func (h *HTTPChecker) RegexpHTTPCheck(url string, rex *regexp.Regexp) *Result {
 	}
 }
 
-func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) (func() *Result, error) {
+func (h *HTTPChecker) NewSimpleHTTPCheck(args map[string]string) (func() chan *Result, error) {
 	var url string
 	var ok bool
 	if url, ok = args["url"]; !ok {
 		return nil, fmt.Errorf("SimpleHTTPCheck missing 'url' parameter")
 	}
-	return func() *Result {
-		return h.SimpleHTTPCheck(url)
+	return func() chan *Result {
+		resultStream := make(chan *Result, 1)
+		defer close(resultStream)
+		resultStream <- h.SimpleHTTPCheck(url)
+		return resultStream
 	}, nil
 }
 
-func (h *HTTPChecker) NewRegexpHTTPCheck(args map[string]string) (func() *Result, error) {
+func (h *HTTPChecker) NewRegexpHTTPCheck(args map[string]string) (func() chan *Result, error) {
 	// TODO abstract argument checking
 	var url, checkRegexp string
 	var ok bool
@@ -106,7 +109,10 @@ func (h *HTTPChecker) NewRegexpHTTPCheck(args map[string]string) (func() *Result
 		return nil, fmt.Errorf("RegexpHTTPCheck missing 'checkRegexp' parameter")
 	}
 	regexpArg := regexp.MustCompile(checkRegexp)
-	return func() *Result {
-		return h.RegexpHTTPCheck(url, regexpArg)
+	return func() chan *Result {
+		resultStream := make(chan *Result, 1)
+		defer close(resultStream)
+		resultStream <- h.RegexpHTTPCheck(url, regexpArg)
+		return resultStream
 	}, nil
 }

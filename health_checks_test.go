@@ -3,12 +3,15 @@ package healthchecker
 import (
 	"errors"
 	"testing"
-	"time"
+	//"time"
 )
 
-func testingCheckConstructor(_ map[string]string) (func() *Result, error) {
-	return func() *Result {
-		return &Result{}
+func testingCheckConstructor(_ map[string]string) (func() chan *Result, error) {
+	return func() chan *Result {
+		resultStream := make(chan *Result, 1)
+		defer close(resultStream)
+		resultStream <- &Result{}
+		return resultStream
 	}, nil
 }
 
@@ -21,7 +24,7 @@ func TestNewCheckCorrect(t *testing.T) {
 
 func TestNewCheckFail(t *testing.T) {
 	registry := NewRegistry()
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() chan *Result, error) {
 		return nil, errors.New("Wat")
 	}
 
@@ -31,9 +34,13 @@ func TestNewCheckFail(t *testing.T) {
 func TestStartRunning(t *testing.T) {
 	registry := NewRegistry()
 	var ran = false
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() chan *Result, error) {
 		ran = true
-		return func() *Result { return nil }, nil
+		return func() chan *Result {
+			resStream := make(chan *Result)
+			defer close(resStream)
+			return resStream
+		}, nil
 	}
 
 	sinks := make([]Emitter, 0)
@@ -41,7 +48,7 @@ func TestStartRunning(t *testing.T) {
 	registry.AddCheck("some check", "testing", nil, 1, sinks)
 
 	go registry.StartRunning()
-	time.Sleep(1100 * time.Millisecond)
+	//time.Sleep(1100 * time.Millisecond)
 	registry.StopRunning()
 	if !ran {
 		t.Errorf("Failed to execute check in loop")
@@ -83,9 +90,14 @@ func TestRegisterHealthChecks(t *testing.T) {
 
 	registry := NewRegistry()
 	var ran = false
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() chan *Result, error) {
 		ran = true
-		return func() *Result { return nil }, nil
+		return func() chan *Result {
+				resStream := make(chan *Result)
+				defer close(resStream)
+				return resStream
+			},
+			nil
 	}
 	registry.SinkConstructors["FileSink"] = NewFileSink
 	registry.RegisterHealthChecks(config)
@@ -141,8 +153,12 @@ func TestRegisterHealthChecksWithSameSink(t *testing.T) {
 	}
 
 	registry := NewRegistry()
-	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() *Result, error) {
-		return func() *Result { return nil }, nil
+	registry.CheckConstructors["testing"] = func(_ map[string]string) (func() chan *Result, error) {
+		return func() chan *Result {
+			resStream := make(chan *Result)
+			defer close(resStream)
+			return resStream
+		}, nil
 	}
 	registry.SinkConstructors["FileSink"] = NewFileSink
 	registry.RegisterHealthChecks(config)

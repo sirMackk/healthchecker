@@ -118,7 +118,7 @@ func (i *ICMPChecker) ICMPV4Check(targetIP *net.IPAddr) *Result {
 	}
 }
 
-func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() *Result, error) {
+func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() chan *Result, error) {
 	IP, ok := args["targetIP"]
 	if !ok {
 		return nil, fmt.Errorf("ICMPV4Check missing 'targetIP' parameter")
@@ -127,7 +127,10 @@ func (i *ICMPChecker) NewICMPV4Check(args map[string]string) (func() *Result, er
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse %s into ipv4 address: %s", IP, err)
 	}
-	return func() *Result {
-		return i.ICMPV4Check(targetIP)
+	return func() chan *Result {
+		resultStream := make(chan *Result, 1)
+		defer close(resultStream)
+		resultStream <- i.ICMPV4Check(targetIP)
+		return resultStream
 	}, nil
 }
